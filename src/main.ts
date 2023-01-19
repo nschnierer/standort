@@ -3,12 +3,16 @@ import "./style.css";
 import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 import App from "./features/app/App.vue";
 import Start from "./features/start/Start.vue";
+import User from "./features/user/User.vue";
 import Contacts from "./features/contact/Contacts.vue";
+import ContactAdd from "./features/contact/ContactAdd.vue";
 import AppBar from "./components/AppBar.vue";
 
 const routes: RouteRecordRaw[] = [
   { path: "", component: Start },
+  { path: "/user", component: User },
   { path: "/contacts", component: Contacts },
+  { path: "/contacts/add", component: ContactAdd },
 ];
 
 const router = createRouter({

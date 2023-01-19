@@ -1,13 +1,20 @@
 <script lang="ts">
 import L from "leaflet";
 import { useWebRTCHandler } from "../../store/useWebRTCHandler";
+import { UserCircleIcon } from "@heroicons/vue/24/solid";
 
 export default {
   name: "Start",
+  components: { UserCircleIcon },
   data() {
     return {
       map: null,
     } as { map: null | L.Map };
+  },
+  setup() {
+    const { connected, connect } = useWebRTCHandler();
+
+    return { connected, connect };
   },
   mounted() {
     // Create the map
@@ -18,11 +25,6 @@ export default {
         '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(this.$data.map);
   },
-  setup() {
-    const { connected, connect } = useWebRTCHandler();
-
-    return { connected, connect };
-  },
 };
 </script>
 
@@ -32,7 +34,11 @@ export default {
 
 <template>
   <AppBar title="Contacts">
-    <template v-slot:right>Test</template>
+    <template v-slot:right>
+      <router-link to="/user" class="h-full px-2 flex items-center">
+        <UserCircleIcon class="h-10 w-10 text-white" />
+      </router-link>
+    </template>
   </AppBar>
   <div class="flex w-full">
     <div id="map" class="absolute z-0 w-full bottom-8 top-16"></div>

@@ -3,7 +3,8 @@ import localforage from "localforage";
 
 export type Contact = {
   fingerprint: string;
-  name: string;
+  username: string;
+  publicKey: JsonWebKey;
   addedAt: Date;
 };
 
@@ -30,7 +31,7 @@ export const useContacts = () => {
   };
 
   // Define a function for adding a new contact
-  const addContact = async (contact: Contact) => {
+  const createContact = async (contact: Contact) => {
     const { fingerprint, ...data } = contact;
     try {
       await contactsStore.setItem(fingerprint, data);
@@ -56,7 +57,7 @@ export const useContacts = () => {
   // Return the reactive state and the functions
   return {
     contacts,
-    addContact,
+    createContact,
     removeContact,
     loadContacts,
   };
