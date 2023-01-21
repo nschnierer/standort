@@ -1,22 +1,71 @@
 <script lang="ts">
-import { ref } from "vue";
+import { watch } from "vue";
 import QRCode from "qrcode";
+import { generateFingerprint } from "../../utils/generateFingerprint";
+import { useUser } from "../../store/useUser";
+
+const generateQRCodeDataUrl = async (
+  username: string,
+  publicKey: JsonWebKey
+) => {
+  const publicKeyString = JSON.stringify({
+    publicKey,
+    // short for "username"
+    uname: username,
+  });
+
+  // Convert the JSON string to Base64 to minimize the size of the QR code.
+  // Because Base64 is using less characters than JSON.
+  const publicKeyBase64 = btoa(publicKeyString);
+
+  return await QRCode.toDataURL(publicKeyBase64);
+};
 
 export default {
   name: "User",
-  data: (): { publicKey: string; username: string } => ({
-    publicKey: "",
-    username: "Nobert",
+  data: (): {
+    usernameInput: string;
+    publicKeyHash: string;
+    qrCodeDataUrl: string;
+  } => ({
+    usernameInput: "",
+    publicKeyHash: "",
+    qrCodeDataUrl: "",
   }),
-  setup() {
-    const canvasRef = ref<HTMLCanvasElement | null>(null);
-    return { canvasRef };
+  setup: () => {
+    const { user, updateUser } = useUser();
+    return { user, updateUser };
   },
-  mounted: function () {
-    console.log(this.canvasRef);
+  watch: {
+    user: {
+      handler: async function (newUser: typeof this.user) {
+        if (!newUser.publicKey) {
+          return;
+        }
+        this.$data.publicKeyHash = await generateFingerprint(newUser.publicKey);
+        this.$data.qrCodeDataUrl = await generateQRCodeDataUrl(
+          newUser.username,
+          newUser.publicKey
+        );
+        this.$data.usernameInput = newUser.username;
+      },
+      deep: true,
+    },
   },
   methods: {
+    onClickUpdate: function () {
+      this.updateUser({
+        username: this.$data.usernameInput,
+      });
+    },
     onClickGenerateMyKey: async function () {
+      const yes = confirm(
+        "Are you sure you want to generate a new key pair? This will invalidate your old key pair."
+      );
+      if (!yes) {
+        return;
+      }
+
       const key = await crypto.subtle.generateKey(
         {
           name: "RSASSA-PKCS1-v1_5",
@@ -28,35 +77,14 @@ export default {
         ["sign", "verify"]
       );
 
-      const exportedKey = await crypto.subtle.exportKey("jwk", key.publicKey);
+      const privateKey = await crypto.subtle.exportKey("jwk", key.publicKey);
+      const publicKey = await crypto.subtle.exportKey("jwk", key.publicKey);
 
-      const jsonString = JSON.stringify({
-        ...exportedKey,
-        // short for "username"
-        uname: this.username,
+      this.updateUser({
+        username: this.$data.usernameInput,
+        privateKey,
+        publicKey,
       });
-      this.$data.publicKey = jsonString;
-
-      // Convert the JSON string to Base64 to minimize the size of the QR code.
-      // Because Base64 is using less characters than JSON.
-      const publicKeyBase64 = btoa(jsonString);
-
-      if (this.canvasRef) {
-        QRCode.toCanvas(this.canvasRef, publicKeyBase64);
-      }
-
-      // Generate the SHA-256 hash of the JWK
-      const jwkHash = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(jsonString)
-      );
-
-      // Convert the hash to a hexadecimal string
-      const jwkHashHex = Array.from(new Uint8Array(jwkHash))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      console.log(jwkHashHex);
     },
   },
 };
@@ -64,23 +92,35 @@ export default {
 
 <template>
   <AppBar title="Me" showBackButton />
-  <div class="flex w-full p-4 justify-center flex-col">
-    <canvas ref="canvasRef" width="200px" height="200px"></canvas>
-    <div v-if="publicKey" class="flex flex-col">
-      <div class="text-xl font-bold">Your public key</div>
-      <div class="text-sm text-gray-500">
-        This is your public key. You can share it with your contacts.
+  <div class="flex w-full p-4 justify-center flex-col space-y-6">
+    <div class="flex flex-col justify-center">
+      <div v-if="qrCodeDataUrl" class="flex w-full justify-center">
+        <img :src="qrCodeDataUrl" />
       </div>
-      <div class="text-sm text-gray-500">
-        <pre>{{ publicKey }}</pre>
+      <div v-if="publicKeyHash" class="flex w-full text-center">
+        <code class="w-full truncate">{{ publicKeyHash }}</code>
       </div>
     </div>
-    <input class="p-2 border border-gray-500" type="text" v-model="username" />
+    <div class="flex flex-col">
+      <input
+        class="p-2 border border-gray-500"
+        type="text"
+        v-model="usernameInput"
+        @keyup.enter="onClickUpdate()"
+      />
+      <button
+        @click="onClickUpdate()"
+        className="p-1 bg-gray-900 rounded-sm text-white"
+      >
+        Update
+      </button>
+    </div>
+
     <button
-      @click="onClickGenerateMyKey"
+      @click="onClickGenerateMyKey()"
       className="p-1 bg-gray-900 rounded-sm text-white"
     >
-      Generate my key
+      [DANGER] Generate new key
     </button>
   </div>
 </template>

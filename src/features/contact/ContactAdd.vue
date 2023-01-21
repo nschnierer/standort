@@ -1,7 +1,8 @@
 <script lang="ts">
 import { ref } from "vue";
-import { BrowserQRCodeReader } from "@zxing/browser";
+import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
 import { useContacts } from "../../store/useContacts";
+import { generateFingerprint } from "../../utils/generateFingerprint";
 
 export default {
   name: "ContactAdd",
@@ -9,6 +10,7 @@ export default {
     const videoRef = ref<HTMLVideoElement | null>(null);
     const streamRef = ref<MediaStream | null>(null);
     const codeReaderRef = ref(new BrowserQRCodeReader());
+    const scannerControlsRef = ref<IScannerControls | null>(null);
 
     const { createContact } = useContacts();
 
@@ -24,27 +26,10 @@ export default {
       streamRef,
       codeReaderRef,
       createContact,
+      scannerControlsRef,
     };
   },
   methods: {
-    getFingerprint: async function (publicKey: JsonWebKey) {
-      // Just use the relevant parts of the JWK
-      // See  RFC7638 for more information.
-      const minimalPublicKey = {
-        kty: publicKey.kty,
-        n: publicKey.n,
-        e: publicKey.e,
-      };
-      const buffer = await crypto.subtle.digest(
-        "SHA-256",
-        new TextEncoder().encode(JSON.stringify(minimalPublicKey))
-      );
-      const hashArray = Array.from(new Uint8Array(buffer));
-      const hash = hashArray
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-      return hash;
-    },
     encodeContactData: async function (base64: string) {
       let json = null;
       try {
@@ -63,7 +48,7 @@ export default {
       }
       const { uname: username, ...publicKey } = json;
 
-      const fingerprint = await this.getFingerprint(publicKey);
+      const fingerprint = await generateFingerprint(publicKey);
 
       await this.createContact({
         username,
@@ -77,7 +62,7 @@ export default {
   mounted: async function () {
     if (this.videoRef && this.codeReaderRef) {
       // you can use the controls to stop() the scan or switchTorch() if available
-      const controls = await this.codeReaderRef.decodeFromVideoDevice(
+      this.scannerControlsRef = await this.codeReaderRef.decodeFromVideoDevice(
         undefined,
         this.videoRef,
         async (result, error, controls) => {
@@ -93,12 +78,18 @@ export default {
         }
       );
       // stops scanning after 20 seconds
-      setTimeout(() => controls.stop(), 20000);
+      setTimeout(() => this.scannerControlsRef?.stop(), 20000);
     }
   },
   unmounted: function () {
+    console.log("unmounted");
+    this.scannerControlsRef?.stop();
     if (this.streamRef) {
-      this.streamRef.getTracks().forEach((track) => track.stop());
+      console.log("unmounted", this.streamRef);
+      this.streamRef.getTracks().forEach((track) => {
+        console.log("track...");
+        track.stop();
+      });
     }
   },
 };
