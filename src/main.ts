@@ -1,6 +1,7 @@
 import { createApp, h } from "vue";
-import "./style.css";
+import adapter from "webrtc-adapter";
 import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
+import "./style.css";
 import App from "./features/app/App.vue";
 import Start from "./features/start/Start.vue";
 import User from "./features/user/User.vue";
