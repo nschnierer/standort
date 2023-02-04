@@ -1,7 +1,10 @@
 <script lang="ts">
 import { watch } from "vue";
 import QRCode from "qrcode";
-import { ClipboardIcon } from "@heroicons/vue/24/outline";
+import {
+  ClipboardIcon,
+  InformationCircleIcon,
+} from "@heroicons/vue/24/outline";
 import { generateFingerprint } from "../../utils/generateFingerprint";
 import { useUser } from "../../store/useUser";
 
@@ -26,6 +29,7 @@ export default {
   name: "User",
   components: {
     ClipboardIcon,
+    InformationCircleIcon,
   },
   data: (): {
     usernameInput: string;
@@ -117,7 +121,7 @@ export default {
     </div>
     <div class="flex flex-col">
       <input
-        class="p-2 border border-gray-500"
+        class="p-2 py-3 border border-gray-500"
         type="text"
         v-model="usernameInput"
         placeholder="Username, Pseudonym, etc."
@@ -125,7 +129,7 @@ export default {
       />
       <button
         @click="onClickUpdate()"
-        className="p-1 bg-gray-900 rounded-sm text-white"
+        className="p-1 bg-gray-900 rounded-md py-2 text-white mt-1"
       >
         Update
       </button>
@@ -133,9 +137,15 @@ export default {
 
     <button
       @click="onClickGenerateMyKey()"
-      className="p-1 bg-gray-900 rounded-sm text-white"
+      className="p-1 bg-gray-900 rounded-md py-2 text-white"
     >
-      [DANGER] Generate new key
+      [DANGER] Generate new key pair
     </button>
+    <div v-if="!publicKeyHash" class="flex text-md items-center space-x-4">
+      <InformationCircleIcon class="w-12 h-12 text-violet-700" />
+      <div>
+        You don't have a key pair yet. Click the button above to generate one.
+      </div>
+    </div>
   </div>
 </template>

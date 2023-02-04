@@ -95,7 +95,7 @@ export default {
       <div class="w-full p-2">
         <router-link
           to="/contacts"
-          class="flex justify-center w-full px-4 py-4 font-bold text-white bg-blue-500 rounded"
+          class="flex justify-center w-full px-4 py-4 font-bold text-white bg-violet-500 rounded"
         >
           Share locations
         </router-link>

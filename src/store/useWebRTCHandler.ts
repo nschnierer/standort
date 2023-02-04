@@ -5,7 +5,7 @@ const iceServers = [
 ];
 
 const webSocketUrl =
-  import.meta.env.SIGNALING_WEBSOCKET_URL || "ws://localhost:8080";
+  import.meta.env.SIGNALING_WEBSOCKET_URL || "ws://192.168.0.28:8080";
 
 let socket: WebSocket;
 

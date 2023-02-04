@@ -71,7 +71,7 @@ export default defineComponent({
                 type="checkbox"
                 @click="onSelectContact(contact.fingerprint)"
                 :selected="selectedContacts.includes(contact.fingerprint)"
-                class="w-5 h-5 text-blue-600 border border-gray-300 rounded-md checked:border-1 accent-blue-600 focus:ring-2 focus:ring-blue-500"
+                class="w-5 h-5 text-violet-600 border border-gray-300 rounded-md checked:border-1 accent-violet-600 focus:ring-2 focus:ring-violet-500"
               />
               <span class="hidden ml-2"
                 >Select to share location with {{ contact.username }}</span
@@ -105,7 +105,7 @@ export default defineComponent({
         <button
           @click="onShare()"
           :disabled="selectedContacts.length === 0"
-          class="flex justify-center w-full px-4 py-4 font-bold text-white bg-blue-500 rounded disabled:bg-blue-200"
+          class="flex justify-center w-full px-4 py-4 font-bold text-white bg-violet-500 rounded disabled:bg-violet-200"
         >
           Share with selected ({{ selectedContacts.length }})
         </button>

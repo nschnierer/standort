@@ -34,7 +34,7 @@ export default {
 
 <template>
   <header
-    class="sticky top-0 z-30 flex items-center justify-center h-16 bg-blue-500"
+    class="sticky top-0 z-30 flex items-center justify-center h-16 bg-violet-600"
   >
     <div class="flex h-full px-2 py-2 items-center justify-start w-28">
       <button
