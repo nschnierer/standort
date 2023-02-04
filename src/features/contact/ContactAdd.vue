@@ -33,7 +33,9 @@ export default {
     encodeContactData: async function (base64: string) {
       let json = null;
       try {
-        json = JSON.parse(atob(base64)) as JsonWebKey & {
+        const jsonRaw = atob(base64);
+        console.log("jsonRaw", jsonRaw);
+        json = JSON.parse(jsonRaw) as JsonWebKey & {
           uname: string;
         };
         if (!json.alg) {
@@ -49,6 +51,7 @@ export default {
       const { uname: username, ...publicKey } = json;
 
       const fingerprint = await generateFingerprint(publicKey);
+      console.log(fingerprint);
 
       await this.createContact({
         username,

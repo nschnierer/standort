@@ -7,11 +7,28 @@ export default {
   name: "App",
   setup: () => {
     const { user } = useUser();
-    const { establishConnection, sendOffer, sendData } = useWebRTCHandler();
+    const { establishConnection, sendOffer, sendData, peers } =
+      useWebRTCHandler();
 
-    return { user, establishConnection, sendOffer, sendData };
+    return { user, establishConnection, sendOffer, sendData, peers };
   },
+  data: (): {
+    address: string;
+  } => ({
+    address: "",
+  }),
   watch: {
+    peers: {
+      handler: async function (peers: typeof this.peers) {
+        if (Object.keys(peers).length > 0) {
+          navigator.geolocation.watchPosition(
+            this.watchPositionSuccess,
+            this.watchPositionError
+          );
+        }
+      },
+      deep: true,
+    },
     "user.publicKey": {
       handler: async function (publicKey: typeof this.user.privateKey) {
         if (!publicKey) {
@@ -24,25 +41,30 @@ export default {
     },
   },
   methods: {
+    watchPositionSuccess: function (position: GeolocationPosition) {
+      console.log("watchPositionSuccess called");
+      Object.keys(this.peers).forEach((peerId) => {
+        this.sendData(peerId, {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      });
+    },
+    watchPositionError: function (error: GeolocationPositionError) {
+      console.error(error);
+    },
     onClickSendOffer: function () {
-      this.sendOffer(
-        "8ef531e2c4d706e25d11378c90387bd2720c3cb32f436f64d9b1574af32438ed"
-      );
+      this.sendOffer(this.$data.address);
     },
     onClickSendMessage: function () {
-      this.sendData(
-        "8ef531e2c4d706e25d11378c90387bd2720c3cb32f436f64d9b1574af32438ed",
-        { message: "Next time it's an GeoJSON :)" }
-      );
+      this.sendData(this.$data.address, {
+        message: "Next time it's an GeoJSON :)",
+      });
     },
   },
 };
 </script>
 
 <template>
-  <main class="flex-grow">
-    <button @click="onClickSendOffer()">Send Offer</button> |
-    <button @click="onClickSendMessage()">Send Message</button>
-    <router-view></router-view>
-  </main>
+  <router-view></router-view>
 </template>

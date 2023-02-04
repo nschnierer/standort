@@ -1,6 +1,7 @@
 <script lang="ts">
 import { watch } from "vue";
 import QRCode from "qrcode";
+import { ClipboardIcon } from "@heroicons/vue/24/outline";
 import { generateFingerprint } from "../../utils/generateFingerprint";
 import { useUser } from "../../store/useUser";
 
@@ -9,9 +10,9 @@ const generateQRCodeDataUrl = async (
   publicKey: JsonWebKey
 ) => {
   const publicKeyString = JSON.stringify({
-    publicKey,
     // short for "username"
     uname: username,
+    ...publicKey,
   });
 
   // Convert the JSON string to Base64 to minimize the size of the QR code.
@@ -23,6 +24,9 @@ const generateQRCodeDataUrl = async (
 
 export default {
   name: "User",
+  components: {
+    ClipboardIcon,
+  },
   data: (): {
     usernameInput: string;
     publicKeyHash: string;
@@ -53,6 +57,13 @@ export default {
     },
   },
   methods: {
+    copyFingerprint: function () {
+      try {
+        navigator.clipboard.writeText(this.$data.publicKeyHash);
+      } catch (err) {
+        console.error(err);
+      }
+    },
     onClickUpdate: function () {
       this.updateUser({
         username: this.$data.usernameInput,
@@ -91,7 +102,7 @@ export default {
 </script>
 
 <template>
-  <AppBar title="Me" showBackButton />
+  <AppBar title="Me" showBackButton :onClickBack="() => $router.push('/')" />
   <div class="flex w-full p-4 justify-center flex-col space-y-6">
     <div class="flex flex-col justify-center">
       <div v-if="qrCodeDataUrl" class="flex w-full justify-center">
@@ -99,6 +110,9 @@ export default {
       </div>
       <div v-if="publicKeyHash" class="flex w-full text-center">
         <code class="w-full truncate">{{ publicKeyHash }}</code>
+        <button className="pl-1 hover:text-gray-700" @click="copyFingerprint()">
+          <ClipboardIcon class="w-6 h-6" />
+        </button>
       </div>
     </div>
     <div class="flex flex-col">
@@ -106,6 +120,7 @@ export default {
         class="p-2 border border-gray-500"
         type="text"
         v-model="usernameInput"
+        placeholder="Username, Pseudonym, etc."
         @keyup.enter="onClickUpdate()"
       />
       <button

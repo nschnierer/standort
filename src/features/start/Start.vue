@@ -12,13 +12,60 @@ export default {
     } as { map: null | L.Map };
   },
   setup() {
-    const { connected, connect } = useWebRTCHandler();
+    const { messages } = useWebRTCHandler();
 
-    return { connected, connect };
+    return { messages };
+  },
+  watch: {
+    messages: {
+      handler: function (newMessages: typeof this.messages) {
+        console.log("newMessages", newMessages);
+
+        if (!this.$data.map) {
+          return null;
+        }
+
+        // Clear all markers before adding new ones
+        this.$data.map.eachLayer((layer) => {
+          if (layer instanceof L.Marker) {
+            this.$data?.map?.removeLayer(layer);
+          }
+        });
+
+        let addedMarkers: L.Marker[] = [];
+
+        Object.keys(newMessages).forEach((id) => {
+          if (newMessages[id].length === 0) {
+            return;
+          }
+          const location = newMessages[id][newMessages[id].length - 1] as {
+            latitude: number;
+            longitude: number;
+          };
+
+          if (location?.latitude && location?.longitude) {
+            const { latitude, longitude } = location;
+            if (this.$data.map) {
+              addedMarkers.push(
+                L.marker([latitude, longitude]).addTo(this.$data.map)
+              );
+            }
+          }
+        });
+
+        if (addedMarkers.length > 0) {
+          this.$data?.map?.fitBounds(
+            L.featureGroup(addedMarkers).getBounds().pad(0.5)
+          );
+        }
+      },
+      deep: true,
+    },
   },
   mounted() {
     // Create the map
-    this.$data.map = L.map("map").setView([51.505, -0.09], 13);
+
+    this.$data.map = L.map("map").setView([50.8742, 9], 4);
     // Add a tile layer to the map
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
@@ -33,7 +80,7 @@ export default {
 </style>
 
 <template>
-  <AppBar title="Contacts">
+  <AppBar title="WebRTC">
     <template v-slot:right>
       <router-link to="/user" class="h-full px-2 flex items-center">
         <UserCircleIcon class="h-10 w-10 text-white" />
