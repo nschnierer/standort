@@ -1,10 +1,9 @@
 <script lang="ts">
-import { watch } from "vue";
-import QRCode from "qrcode";
 import {
   ClipboardIcon,
   InformationCircleIcon,
 } from "@heroicons/vue/24/outline";
+import QRCode from "qrcode";
 import { generateFingerprint } from "../../utils/generateFingerprint";
 import { useUser } from "../../store/useUser";
 
@@ -27,10 +26,6 @@ const generateQRCodeDataUrl = async (
 
 export default {
   name: "User",
-  components: {
-    ClipboardIcon,
-    InformationCircleIcon,
-  },
   data: (): {
     usernameInput: string;
     publicKeyHash: string;
