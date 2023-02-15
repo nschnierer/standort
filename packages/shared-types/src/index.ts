@@ -1,1 +1,1 @@
-export type TestType = string;
+export * from "./socket";

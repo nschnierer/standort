@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
     "target": "ES2021",
-    "module": "ES2020",
+    "module": "ES2022",
     "moduleResolution": "node",
     "sourceMap": true,
     "noImplicitAny": true,
     "outDir": "dist",
     "lib": ["ES2021"],
-    "types": ["node"],
+    "types": ["node", "jest"],
     "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*"]

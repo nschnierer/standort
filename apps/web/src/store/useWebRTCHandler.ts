@@ -167,7 +167,7 @@ const establishConnection = (myId: string) => {
   socket = new WebSocket(webSocketUrlWithId, "echo-protocol");
 
   socket.onopen = (message) => {
-    console.log("Socket connected", message);
+    console.log("Socket connected");
   };
 
   // TODO: Ask signaling server for list of peers
