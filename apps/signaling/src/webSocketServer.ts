@@ -15,7 +15,7 @@ const connections = new Map<string, WebSocketConnection>();
  * Extract and validate the client id and api key from the search params.
  */
 const extractSearchParams = (search: string | null) => {
-  const params = new URLSearchParams(search);
+  const params = new URLSearchParams(search || "");
 
   // Parse and transform with zod.
   const addressParsed = ClientAddressZod.safeParse(params.get("id"));

@@ -2,9 +2,19 @@
   "name": "shared-types",
   "version": "0.0.1",
   "type": "module",
-  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js"
+    }
+  },
   "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "zod": "^3.20.6"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.5"
   }
 }
