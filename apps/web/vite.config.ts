@@ -10,4 +10,9 @@ export default defineConfig({
   preview: {
     https: true,
   },
+  resolve: {
+    alias: {
+      "~": "/src",
+    },
+  },
 });

@@ -34,7 +34,7 @@ export const useUser = () => {
     }
   };
 
-  const updateUser = async (data: Omit<User, "createdAt" | "updatedAt">) => {
+  const updateUser = async (data: Partial<User>) => {
     try {
       const newUser = {
         ...user,
