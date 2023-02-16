@@ -1,6 +1,6 @@
-import * as http from "http";
-import {
-  client as WebSocketClient,
+import { createServer } from "node:http";
+import { client as WebSocketClient } from "websocket";
+import type {
   connection as WebSocketConnection,
   Message as WebSocketMessage,
 } from "websocket";
@@ -25,11 +25,11 @@ const closeConnection = (connection: WebSocketConnection) => {
 };
 
 describe("WebSocket Server", () => {
-  let server: http.Server;
+  let server: ReturnType<typeof createServer>;
 
   beforeAll(async () => {
     // Start server and wait for it to start listening.
-    server = http.createServer();
+    server = createServer();
     createWebSocketServer(server, { apiKey: SOCKET_API_KEY });
     await new Promise((resolve) => {
       server.listen(SOCKET_PORT, () => resolve(true));
