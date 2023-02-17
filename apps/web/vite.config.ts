@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 
@@ -14,5 +15,9 @@ export default defineConfig({
     alias: {
       "~": "/src",
     },
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./tests/setupTests.ts"],
   },
 });
