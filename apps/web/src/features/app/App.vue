@@ -1,22 +1,24 @@
 <script lang="ts">
-import { generateFingerprint } from "../../utils/generateFingerprint";
-import { useUser } from "../../store/useUser";
+import { mapStores } from "pinia";
+import { useIdentityStore } from "~/store/useIdentityStore";
 import { useWebRTCHandler } from "../../store/useWebRTCHandler";
 
 export default {
   name: "App",
   setup: () => {
-    const { user } = useUser();
     const { establishConnection, sendOffer, sendData, peers } =
       useWebRTCHandler();
 
-    return { user, establishConnection, sendOffer, sendData, peers };
+    return { establishConnection, sendOffer, sendData, peers };
   },
   data: (): {
     address: string;
   } => ({
     address: "",
   }),
+  computed: {
+    ...mapStores(useIdentityStore),
+  },
   watch: {
     peers: {
       handler: async function (peers: typeof this.peers) {
@@ -26,16 +28,6 @@ export default {
             this.watchPositionError
           );
         }
-      },
-      deep: true,
-    },
-    "user.publicKey": {
-      handler: async function (publicKey: typeof this.user.privateKey) {
-        if (!publicKey) {
-          return;
-        }
-        const fingerprint = await generateFingerprint(publicKey);
-        this.establishConnection(fingerprint);
       },
       deep: true,
     },
@@ -61,6 +53,17 @@ export default {
         message: "Next time it's an GeoJSON :)",
       });
     },
+  },
+  mounted: async function () {
+    this.establishConnection(this.identityStore.fingerprint);
+    console.log(this.identityStore.username);
+    if (
+      this.identityStore.username === "" &&
+      this.$route.path !== "/intro" &&
+      this.$route.path !== "/setup"
+    ) {
+      this.$router.push("/intro");
+    }
   },
 };
 </script>

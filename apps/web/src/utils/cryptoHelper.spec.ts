@@ -8,6 +8,7 @@ import {
   encrypt,
   decrypt,
   generateFingerprint,
+  generateChecksum,
 } from "./cryptoHelpers";
 
 // NOTE:
@@ -134,5 +135,13 @@ describe("cryptoHelpers", () => {
       "ec96cfa3c229e489149d5ad15eee2e0aefb7cabdad5abfa4c76ab695f20ecd14"
     );
     expect(fingerprint.length).toBe(64);
+  });
+
+  it("should generate a checksum with a given string", async () => {
+    const text = "This is a checksum test.";
+    const checksum = await generateChecksum(text);
+    expect(checksum).toBe(
+      "0ebf25f6d3a1a88ae8d9da5e76df0952d6950a12e8df9086188c2b9bc83e6bda"
+    );
   });
 });

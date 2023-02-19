@@ -1,6 +1,8 @@
-import { createApp, h } from "vue";
+import { createApp, watch } from "vue";
 import adapter from "webrtc-adapter";
 import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
+import { createPinia } from "pinia";
+import localforage from "localforage";
 import "./style.css";
 import App from "./features/app/App.vue";
 import Start from "./features/start/Start.vue";
@@ -11,6 +13,9 @@ import Contacts from "./features/contact/Contacts.vue";
 import ContactAdd from "./features/contact/ContactAdd.vue";
 import AppBar from "./components/AppBar.vue";
 import SquaresBackground from "./components/SquaresBackground.vue";
+import QRCodeImage from "./components/QRCodeImage.vue";
+
+import { Identity as IdentityStore } from "~/store/useIdentityStore";
 
 const routes: RouteRecordRaw[] = [
   { path: "", component: Start },
@@ -26,12 +31,51 @@ const router = createRouter({
   routes,
 });
 
+const pinia = createPinia();
+
 const app = createApp(App);
 
 // Global components
 app.component("AppBar", AppBar);
 app.component("SquaresBackground", SquaresBackground);
+app.component("QRCodeImage", QRCodeImage);
 
 app.use(router);
+app.use(pinia);
 
-app.mount("#app");
+const appState = localforage.createInstance({
+  name: "standort-state",
+});
+
+let rehydrateFinished = false;
+
+appState
+  .getItem<{ identity: IdentityStore }>("data")
+  .then((data) => {
+    if (data) {
+      pinia.state.value = data;
+      console.log("Rehydrated state");
+    }
+  })
+  .catch((err) => {
+    console.log("Unable to load state", err);
+  })
+  .finally(() => {
+    rehydrateFinished = true;
+    app.mount("#app");
+  });
+
+watch(
+  pinia.state,
+  (state) => {
+    if (!rehydrateFinished) {
+      return;
+    }
+    const pureObject = JSON.parse(JSON.stringify(state));
+    console.log("Persist state", pureObject);
+    appState.setItem("data", pureObject).catch((err) => {
+      console.log("Unable to save state", err);
+    });
+  },
+  { deep: true }
+);

@@ -139,6 +139,17 @@ export const decrypt = async (secretKey: CryptoKey, data: EncryptedData) => {
 };
 
 /**
+ * Converts an ArrayBuffer to a hex string.
+ * @param buffer
+ * @returns
+ */
+export const bufferToHex = (buffer: ArrayBuffer) => {
+  return Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+/**
  * Generate a fingerprint from a public key.
  * @param publicKey
  * @returns SHA-256 hash of the public key.
@@ -153,8 +164,18 @@ export const generateFingerprint = async (publicKey: JsonWebKey) => {
     "SHA-256",
     new TextEncoder().encode(JSON.stringify(minimalPublicKey))
   );
-  const hashArray = Array.from(new Uint8Array(buffer));
-  // Convert the hash array to a hex string.
-  const hash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-  return hash;
+  return bufferToHex(buffer);
+};
+
+/**
+ * Generate a SHA-256 checksum from a string.
+ * @param data
+ * @returns
+ */
+export const generateChecksum = async (data: string) => {
+  const buffer = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(data)
+  );
+  return bufferToHex(buffer);
 };

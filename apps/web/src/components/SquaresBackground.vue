@@ -3,6 +3,12 @@ import { ref } from "vue";
 
 export default {
   name: "SquaresBackground",
+  props: {
+    animate: {
+      type: Boolean,
+      default: true,
+    },
+  },
   data() {
     return {
       /** Defines the size of the squares on the canvas */
@@ -17,6 +23,13 @@ export default {
     const wrapper = ref<HTMLElement>();
     const canvas = ref<HTMLCanvasElement>();
     return { wrapper, canvas };
+  },
+  watch: {
+    animate(animate: boolean) {
+      if (!animate) {
+        window.clearInterval(this.interval);
+      }
+    },
   },
   methods: {
     /**
@@ -86,6 +99,11 @@ export default {
 
       // Make sure to clear the interval before setting a new one
       clearInterval(this.interval);
+
+      if (this.animate === false) {
+        return;
+      }
+
       this.interval = window.setInterval(() => {
         // Redraw the squares
         drawSquares();
@@ -107,7 +125,7 @@ export default {
 </script>
 
 <template>
-  <div ref="wrapper" class="absolute top-0 left-0 right-0 bottom-0 -z-10">
+  <div ref="wrapper" class="absolute top-0 bottom-0 left-0 right-0 -z-10">
     <canvas ref="canvas" />
   </div>
 </template>

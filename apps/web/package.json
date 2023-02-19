@@ -17,6 +17,7 @@
     "@zxing/browser": "^0.1.1",
     "leaflet": "^1.9.3",
     "localforage": "^1.10.0",
+    "pinia": "^2.0.30",
     "qrcode": "^1.5.1",
     "vue": "^3.2.47",
     "vue-router": "^4.1.6",

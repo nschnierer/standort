@@ -1,10 +1,10 @@
 <script lang="ts">
 import SetupUsername from "./SetupUsername.vue";
-import SetupKey from "./SetupKey.vue";
+import SetupIdentity from "./SetupIdentity.vue";
 
 export default {
   name: "Setup",
-  components: { SetupUsername, SetupKey },
+  components: { SetupUsername, SetupIdentity },
   methods: {},
   computed: {
     step() {
@@ -21,8 +21,5 @@ export default {
     @on-submit="() => $router.push('/setup?step=2')"
     v-if="step === 1"
   />
-  <SetupKey
-    @on-submit="() => $router.push('/setup?step=3')"
-    v-if="step === 2"
-  />
+  <SetupIdentity @on-submit="() => $router.push('/')" v-if="step === 2" />
 </template>

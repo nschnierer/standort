@@ -1,5 +1,6 @@
 <script lang="ts">
-import { useUser } from "~/store/useUser";
+import { mapStores } from "pinia";
+import { useIdentityStore } from "~/store/useIdentityStore";
 
 export default {
   name: "SetupUsername",
@@ -10,9 +11,8 @@ export default {
     interval: 0,
     intervalDelay: 2500,
   }),
-  setup() {
-    const { user, updateUser } = useUser();
-    return { user, updateUser };
+  computed: {
+    ...mapStores(useIdentityStore),
   },
   methods: {
     /**
@@ -56,13 +56,13 @@ export default {
       }, this.intervalDelay);
     },
     onSubmit() {
-      this.updateUser({ username: this.username });
+      this.identityStore.$patch({ username: this.username });
       this.$emit("on-submit");
     },
   },
   mounted() {
-    if (this.user.username) {
-      this.username = this.user.username;
+    if (this.identityStore.username) {
+      this.username = this.identityStore.username;
     }
 
     this.startInterval();
@@ -75,19 +75,19 @@ export default {
 
 <template>
   <form
-    class="flex flex-1 justify-center items-center bg-violet-600"
+    class="flex items-center justify-center flex-1 bg-violet-600"
     v-on:submit.prevent="onSubmit"
   >
-    <div class="text-center px-2 w-full max-w-md mx-auto">
+    <div class="w-full max-w-md px-2 mx-auto text-center">
       <h1 class="text-3xl text-white">Your name</h1>
 
-      <div class="flex flex-col justify-center items-center">
+      <div class="flex flex-col items-center justify-center">
         <input
           type="text"
           aria-describedby="username-description"
           v-model="username"
           maxlength="35"
-          class="w-full px-4 py-3 mt-4 text-gray-800 text-xl bg-white rounded outline-none appearance-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
+          class="w-full px-4 py-3 mt-4 text-xl text-gray-800 bg-white rounded outline-none appearance-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2"
           :placeholder="usernamePlaceholder"
         />
       </div>
@@ -101,7 +101,7 @@ export default {
         <button
           type="submit"
           :disabled="username.length === 0"
-          class="flex justify-center w-full px-4 py-4 font-bold text-violet-600 bg-white rounded disabled:opacity-40 disabled:cursor-not-allowed transition-opacity duration-500"
+          class="flex justify-center w-full px-4 py-4 font-bold transition-opacity duration-500 bg-white rounded text-violet-600 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Next
         </button>
