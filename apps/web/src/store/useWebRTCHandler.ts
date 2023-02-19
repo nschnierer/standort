@@ -4,10 +4,11 @@ const iceServers = [
   { urls: ["stun:stun.sipgate.net", "stun:stun.services.mozilla.com"] },
 ];
 
-const webSocketUrl =
-  import.meta.env.VITE_SIGNALING_WEBSOCKET_URL || "ws://localhost:6000";
+const SIGNALING_URL =
+  import.meta.env.VITE_SIGNALING_URL || "ws://localhost:6000";
+const SIGNALING_API_KEY = import.meta.env.VITE_SIGNALING_API_KEY || "";
 
-console.log("webSocketUrl", webSocketUrl);
+console.log("Use signaling server:", SIGNALING_URL);
 
 let socket: WebSocket;
 
@@ -162,7 +163,13 @@ const sendData = (to: string, data: object) => {
 
 const establishConnection = (myId: string) => {
   myIdentifier = myId;
-  const webSocketUrlWithId = `${webSocketUrl}?id=${myId}`;
+
+  // Pass the API key as query parameter if available.
+  // There is no way to pass the API key as HTTP header for WebSockets.
+  const apiKeyParam = SIGNALING_API_KEY ? `&apiKey=${SIGNALING_API_KEY}` : "";
+
+  // Build the URL for the signaling server with the client ID and API key.
+  const webSocketUrlWithId = `${SIGNALING_URL}?id=${myId}${apiKeyParam}`;
 
   socket = new WebSocket(webSocketUrlWithId, "echo-protocol");
 

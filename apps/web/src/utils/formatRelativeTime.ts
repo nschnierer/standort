@@ -12,9 +12,8 @@ const formatterWithYear = new Intl.DateTimeFormat("en", {
 /**
  * Format a date as a relative time.
  * E.g.: "Just now", "2m ago", "3h ago", "Jan 14", "Jun 3 2022"
- * @param date
- * @param now
- * @returns
+ * @param date The date to format
+ * @param now Defaults to `new Date()`. Set this to a fixed date for testing.
  */
 export const formatRelativeTime = (date: Date, now = new Date()): string => {
   const timeDiff = now.getTime() - date.getTime();

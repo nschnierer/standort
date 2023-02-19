@@ -1,3 +1,6 @@
+/**
+ * @deprecated Will be removed later
+ */
 export const generateFingerprint = async (publicKey: JsonWebKey) => {
   // Just use the relevant parts of the JWK
   // See  RFC7638 for more information.
