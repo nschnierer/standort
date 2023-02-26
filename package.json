@@ -15,6 +15,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
+    "@playwright/test": "^1.31.1",
     "dotenv-cli": "latest",
     "prettier": "latest",
     "turbo": "latest"
