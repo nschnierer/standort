@@ -1,4 +1,6 @@
-name: Playwright Tests
+# Run E2E tests with Playwright over Vercel previews.
+# Source: https://vercel.com/guides/how-can-i-run-end-to-end-tests-after-my-vercel-preview-deployment
+name: Playwright
 
 on:
   deployment_status:
