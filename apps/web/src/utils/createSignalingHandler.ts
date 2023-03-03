@@ -10,11 +10,10 @@ export const defaultWebSocketInstance = (
 };
 
 interface CreateSocketHandlerOptions {
-  myIdentifier: string;
   url: string;
   apiKey?: string;
   protocol?: string;
-  onMessage: (message: object | null) => void;
+  onValidMessage: (message: object) => void;
   /** For testing purposes */
   createSocketInstance?: typeof defaultWebSocketInstance;
 }
@@ -22,39 +21,27 @@ interface CreateSocketHandlerOptions {
 /**
  * Creates a WebSocket connection to the signaling server.
  * @param options
- * @param options.myIdentifier The identifier of the client.
  * @param options.url The URL of the signaling server.
  * @param options.apiKey The API key for the signaling server.
  * @param options.protocol Websocket protocol. Defaults to "echo-protocol".
- * @param options.onMessage A callback that is called when a message is received.
+ * @param options.onValidMessage A callback that is called when a message is received.
  * @param options.createSocketInstance A function that creates a WebSocket instance for testing purposes.
  * @returns
  */
 export const createSignalingHandler = ({
-  myIdentifier,
   url,
   apiKey,
   protocol = "echo-protocol",
-  onMessage,
+  onValidMessage,
   createSocketInstance = defaultWebSocketInstance,
 }: CreateSocketHandlerOptions) => {
-  // Build the URL for the signaling server with the client ID and API key.
-  const webSocketUrl = new URL(url);
-  webSocketUrl.searchParams.append("id", myIdentifier);
-  if (apiKey) {
-    // There is no way to pass the API key as HTTP header for WebSockets.
-    webSocketUrl.searchParams.append("apiKey", apiKey);
-  }
+  let previousFingerprint = "";
 
-  let socket: WebSocket = createSocketInstance(webSocketUrl, protocol);
-
-  socket.onopen = (message) => {
+  const onOpen = () => {
     console.log("Socket connected");
   };
 
-  // TODO: Ask signaling server for list of peers
-
-  socket.onmessage = (event) => {
+  const onMessage = (event: MessageEvent) => {
     // Parse message and catch errors
     let message: object | null = null;
     try {
@@ -66,31 +53,47 @@ export const createSignalingHandler = ({
     // Parse and check if message is valid
     const parsed = SocketMessageBaseZod.safeParse(message);
     if (parsed.success) {
-      onMessage(parsed.data);
+      onValidMessage(parsed.data);
       return;
     }
     // Message is not valid
     return;
   };
 
-  const reconnect = () => {
-    socket = createSocketInstance(webSocketUrl, protocol);
-  };
-
-  socket.onclose = () => {
+  const onClose = (event: CloseEvent) => {
     console.log("Socket closed. Reconnecting in 10 seconds...");
     setTimeout(() => {
-      reconnect();
+      connect(previousFingerprint);
     }, 1000 * 10);
+  };
+
+  let socket: WebSocket;
+
+  const connect = (myFingerprint: string) => {
+    previousFingerprint = myFingerprint;
+    // Build the URL for the signaling server with the client ID and API key.
+    const webSocketUrl = new URL(url);
+    webSocketUrl.searchParams.append("id", myFingerprint);
+    if (apiKey) {
+      // There is no way to pass the API key as HTTP header for WebSockets.
+      webSocketUrl.searchParams.append("apiKey", apiKey);
+    }
+
+    socket = createSocketInstance(webSocketUrl, protocol);
+    socket.onopen = onOpen;
+    socket.onmessage = onMessage;
+    socket.onclose = onClose;
+    return socket;
   };
 
   const sendMessage = (message: SocketMessageBase) => {
     socket.send(JSON.stringify(message));
   };
 
-  const close = () => {
+  const disconnect = () => {
+    socket.onclose = () => {};
     socket.close();
   };
 
-  return { reconnect, sendMessage, close };
+  return { connect, sendMessage, disconnect };
 };

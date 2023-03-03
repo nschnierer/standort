@@ -24,12 +24,12 @@ describe("createSocketHandler", () => {
       });
     });
 
-    createSignalingHandler({
-      myIdentifier: "d31af3",
+    const { connect } = createSignalingHandler({
       url: fakeURL,
-      onMessage: () => {},
+      onValidMessage: vi.fn(),
       createSocketInstance,
     });
+    connect("d31af3");
 
     // Verify objects
     expect(await receivedMessage).toEqual("ws://localhost/?id=d31af3");
@@ -46,13 +46,13 @@ describe("createSocketHandler", () => {
       });
     });
 
-    createSignalingHandler({
-      myIdentifier: "d31af3",
+    const { connect } = createSignalingHandler({
       url: fakeURL,
       apiKey: "123456",
-      onMessage: () => {},
+      onValidMessage: vi.fn(),
       createSocketInstance,
     });
+    connect("d31af3");
 
     // Verify objects
     expect(await receivedMessage).toEqual(
@@ -73,12 +73,12 @@ describe("createSocketHandler", () => {
       });
     });
 
-    const { sendMessage } = createSignalingHandler({
-      myIdentifier: "test",
+    const { connect, sendMessage } = createSignalingHandler({
       url: fakeURL,
-      onMessage: () => {},
+      onValidMessage: vi.fn(),
       createSocketInstance,
     });
+    connect("test");
 
     const message = { from: "A", to: "V", data: { text: "From client" } };
 
@@ -106,19 +106,19 @@ describe("createSocketHandler", () => {
       });
     });
 
-    const onMessage = vi.fn();
+    const onValidMessage = vi.fn();
 
-    createSignalingHandler({
-      myIdentifier: "test",
+    const { connect } = createSignalingHandler({
       url: fakeURL,
-      onMessage,
+      onValidMessage,
       createSocketInstance,
     });
+    connect(messageFromServer.to);
 
     expect(await serverSentMessage).toBeTruthy();
 
     // Verify objects
-    expect(onMessage).toHaveBeenCalledWith(messageFromServer);
+    expect(onValidMessage).toHaveBeenCalledWith(messageFromServer);
     mockServer.stop();
   });
 
@@ -137,22 +137,22 @@ describe("createSocketHandler", () => {
       });
     });
 
-    const onMessage = vi.fn();
+    const onValidMessage = vi.fn();
 
-    createSignalingHandler({
-      myIdentifier: "1245367876534213",
+    const { connect } = createSignalingHandler({
       apiKey: "avbsadg",
       url: fakeURL,
-      onMessage,
+      onValidMessage,
       createSocketInstance,
     });
+    connect("1245367876534213");
 
     expect(await serverSentMessage).toBeTruthy();
 
     expect(counter).toBe(1);
 
     // Verify objects
-    expect(onMessage).toHaveBeenCalledTimes(0);
+    expect(onValidMessage).toHaveBeenCalledTimes(0);
     mockServer.stop();
   });
 
@@ -162,18 +162,78 @@ describe("createSocketHandler", () => {
 
     const createInstance = vi.fn(createSocketInstance);
 
-    const { reconnect } = createSignalingHandler({
-      myIdentifier: "1245367876534213",
+    const { connect } = createSignalingHandler({
       url: fakeURL,
-      onMessage: vi.fn(),
+      onValidMessage: vi.fn(),
       createSocketInstance: createInstance,
     });
 
+    connect("1245367876534213");
+
     expect(createInstance).toHaveBeenCalledTimes(1);
 
-    reconnect();
+    connect("1245367876534213");
 
     expect(createInstance).toHaveBeenCalledTimes(2);
+
+    mockServer.stop();
+  });
+
+  it("should receive messages after reconnecting", async () => {
+    const fakeURL = "ws://localhost:8080";
+    const mockServer = new MockSocket.Server(fakeURL);
+
+    const socketPromise = new Promise<MockSocket.Client>((resolve) => {
+      mockServer.on("connection", (socket) => {
+        resolve(socket);
+      });
+    });
+
+    const onValidMessage = vi.fn();
+    const { connect } = createSignalingHandler({
+      url: fakeURL,
+      onValidMessage,
+      createSocketInstance,
+    });
+    connect("1245367876534213");
+
+    const socket = await socketPromise;
+
+    const messageFromServer = {
+      from: "ac96cfa3c229e489149d5ad15eee2e0aefb7cabdad5abfa4c76ab695f20ecd14",
+      to: "bc96cfa3c229e489149d5ad15eee2e0aefb7cabdad5abfa4c76ab695f20ecd14",
+      data: { text: "From client" },
+    };
+
+    socket.send(JSON.stringify(messageFromServer));
+
+    connect("1245367876534213");
+
+    socket.send(JSON.stringify(messageFromServer));
+
+    expect(onValidMessage).toHaveBeenCalledTimes(2);
+
+    mockServer.stop();
+  });
+
+  it("should not reconnect when close is called", async () => {
+    const fakeURL = "ws://localhost:8080";
+    const mockServer = new MockSocket.Server(fakeURL);
+
+    const createInstance = vi.fn(createSocketInstance);
+
+    const { connect, disconnect } = createSignalingHandler({
+      url: fakeURL,
+      onValidMessage: vi.fn(),
+      createSocketInstance: createInstance,
+    });
+    connect("qwertz");
+
+    expect(createInstance).toHaveBeenCalledTimes(1);
+
+    close();
+
+    expect(createInstance).toHaveBeenCalledTimes(1);
 
     mockServer.stop();
   });
