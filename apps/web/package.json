@@ -15,6 +15,7 @@
     "@vueuse/gesture": "^2.0.0-beta.1",
     "@vueuse/motion": "^2.0.0-beta.12",
     "@zxing/browser": "^0.1.1",
+    "date-fns": "^2.29.3",
     "leaflet": "^1.9.3",
     "localforage": "^1.10.0",
     "pinia": "^2.0.30",

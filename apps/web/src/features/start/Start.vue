@@ -1,6 +1,10 @@
 <script lang="ts">
 import L from "leaflet";
-import { useWebRTCHandler } from "../../store/useWebRTCHandler";
+import { mapStores } from "pinia";
+import {
+  useSessionsStore,
+  useSessionHandlerStore,
+} from "~/store/useSessionsStore";
 import { UserCircleIcon } from "@heroicons/vue/24/solid";
 
 export default {
@@ -11,16 +15,13 @@ export default {
       map: null,
     } as { map: null | L.Map };
   },
-  setup() {
-    const { messages } = useWebRTCHandler();
-
-    return { messages };
+  computed: {
+    ...mapStores(useSessionsStore),
+    ...mapStores(useSessionHandlerStore),
   },
   watch: {
-    messages: {
-      handler: function (newMessages: typeof this.messages) {
-        console.log("newMessages", newMessages);
-
+    "sessionsStore.sessions": {
+      handler: function (sessions: typeof this.sessionsStore.sessions) {
         if (!this.$data.map) {
           return null;
         }
@@ -34,22 +35,16 @@ export default {
 
         let addedMarkers: L.Marker[] = [];
 
-        Object.keys(newMessages).forEach((id) => {
-          if (newMessages[id].length === 0) {
+        sessions.forEach((session) => {
+          if (!session.lastPosition) {
             return;
           }
-          const location = newMessages[id][newMessages[id].length - 1] as {
-            latitude: number;
-            longitude: number;
-          };
+          const [feature] = session.lastPosition!.features;
+          const lat = feature.geometry.coordinates[1];
+          const lng = feature.geometry.coordinates[0];
 
-          if (location?.latitude && location?.longitude) {
-            const { latitude, longitude } = location;
-            if (this.$data.map) {
-              addedMarkers.push(
-                L.marker([latitude, longitude]).addTo(this.$data.map)
-              );
-            }
+          if (this.$data.map) {
+            addedMarkers.push(L.marker([lat, lng]).addTo(this.$data.map));
           }
         });
 
@@ -92,7 +87,14 @@ export default {
     <div
       class="absolute bottom-0 z-10 flex w-full h-20 bg-white rounded-b-none shadow-2xl rounded-2xl"
     >
-      <div class="w-full p-2">
+      <div class="flex w-full p-2 space-x-2 items-center">
+        <button
+          v-if="sessionsStore.activeSessions.length > 0"
+          class="flex w-24 justify-center px-4 py-4 font-bold text-white bg-violet-500 rounded"
+          @click="sessionHandlerStore.stopSessions"
+        >
+          Stop
+        </button>
         <router-link
           to="/contacts"
           class="flex justify-center w-full px-4 py-4 font-bold text-white bg-violet-500 rounded"

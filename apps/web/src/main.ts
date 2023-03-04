@@ -54,7 +54,7 @@ appState
   .then((data) => {
     if (data) {
       pinia.state.value = data;
-      console.log("Rehydrated state");
+      console.log("Rehydrated state", data);
     }
   })
   .catch((err) => {
@@ -71,8 +71,13 @@ watch(
     if (!rehydrateFinished) {
       return;
     }
-    const pureObject = JSON.parse(JSON.stringify(state));
-    console.log("Persist state", pureObject);
+    const pureObject = JSON.parse(JSON.stringify(state)) as {
+      [store: string]: object;
+    };
+
+    const { identity, sessions } = pureObject;
+
+    console.log("Persist state", { identity, sessions });
     appState.setItem("data", pureObject).catch((err) => {
       console.log("Unable to save state", err);
     });

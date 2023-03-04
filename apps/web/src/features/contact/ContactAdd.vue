@@ -2,7 +2,7 @@
 import { ref } from "vue";
 import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
 import { useContacts } from "../../store/useContacts";
-import { generateFingerprint } from "../../utils/generateFingerprint";
+import { generateFingerprint } from "~/utils/cryptoHelpers";
 
 export default {
   name: "ContactAdd",
@@ -36,19 +36,16 @@ export default {
         const jsonRaw = atob(base64);
         console.log("jsonRaw", jsonRaw);
         json = JSON.parse(jsonRaw) as JsonWebKey & {
-          uname: string;
+          username: string;
         };
-        if (!json.alg) {
-          throw new Error("Invalid JWK");
-        }
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.error(error);
       }
 
       if (!json) {
         return false;
       }
-      const { uname: username, ...publicKey } = json;
+      const { username, ...publicKey } = json;
 
       const fingerprint = await generateFingerprint(publicKey);
       console.log(fingerprint);

@@ -14,3 +14,37 @@ export const SocketMessageBaseZod = z
   .required();
 
 export type SocketMessageBase = z.infer<typeof SocketMessageBaseZod>;
+
+export const SocketMessageICEZod = SocketMessageBaseZod.extend({
+  data: z.object({
+    candidate: z.string().optional(),
+    sdpMLineIndex: z.number().nullish(),
+    sdpMid: z.string().nullable().nullish(),
+    usernameFragment: z.string().nullish(),
+  }),
+});
+
+export type SocketMessageICE = z.infer<typeof SocketMessageICEZod>;
+
+export const SocketMessageSDPZod = SocketMessageBaseZod.extend({
+  data: z.object({
+    sdp: z.string().optional(),
+    type: z.enum(["offer", "answer", "pranswer", "rollback"]),
+  }),
+});
+
+export type SocketMessageSDP = z.infer<typeof SocketMessageSDPZod>;
+
+export type SocketMessage = SocketMessageICE | SocketMessageSDP;
+
+export const isSessionDescription = (
+  message: SocketMessage
+): message is SocketMessageSDP => {
+  return "sdp" in message.data;
+};
+
+export const isIceCandidate = (
+  message: SocketMessage
+): message is SocketMessageICE => {
+  return "candidate" in message.data;
+};

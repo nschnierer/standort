@@ -1,62 +1,67 @@
 <script lang="ts">
 import { mapStores } from "pinia";
+import { FeatureCollection } from "shared-types";
 import { useIdentityStore } from "~/store/useIdentityStore";
-import { useWebRTCHandler } from "../../store/useWebRTCHandler";
+import { useSessionHandlerStore } from "~/store/useSessionsStore";
 
 export default {
   name: "App",
-  setup: () => {
-    const { establishConnection, sendOffer, sendData, peers } =
-      useWebRTCHandler();
-
-    return { establishConnection, sendOffer, sendData, peers };
-  },
   data: (): {
     address: string;
+    lastFeatureCollection: FeatureCollection | null;
   } => ({
     address: "",
+    lastFeatureCollection: null,
   }),
   computed: {
     ...mapStores(useIdentityStore),
-  },
-  watch: {
-    peers: {
-      handler: async function (peers: typeof this.peers) {
-        if (Object.keys(peers).length > 0) {
-          navigator.geolocation.watchPosition(
-            this.watchPositionSuccess,
-            this.watchPositionError
-          );
-        }
-      },
-      deep: true,
-    },
+    ...mapStores(useSessionHandlerStore),
   },
   methods: {
     watchPositionSuccess: function (position: GeolocationPosition) {
-      console.log("watchPositionSuccess called");
-      Object.keys(this.peers).forEach((peerId) => {
-        this.sendData(peerId, {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-      });
+      const { latitude, longitude } = position.coords;
+      const featureCollection: FeatureCollection = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "Point",
+              coordinates: [longitude, latitude],
+            },
+          },
+        ],
+      };
+      this.lastFeatureCollection = featureCollection;
+      this.sessionHandlerStore.sendToSessions(featureCollection);
+      console.log("watchPositionSuccess called", { latitude, longitude });
     },
     watchPositionError: function (error: GeolocationPositionError) {
       console.error(error);
     },
-    onClickSendOffer: function () {
-      this.sendOffer(this.$data.address);
-    },
-    onClickSendMessage: function () {
-      this.sendData(this.$data.address, {
-        message: "Next time it's an GeoJSON :)",
-      });
+    sendLastPosition: function () {
+      if (this.lastFeatureCollection) {
+        this.sessionHandlerStore.sendToSessions(this.lastFeatureCollection);
+      }
     },
   },
   mounted: async function () {
-    this.establishConnection(this.identityStore.fingerprint);
-    console.log(this.identityStore.username);
+    if (this.identityStore.fingerprint) {
+      // Connect to signaling server
+      this.sessionHandlerStore.start(this.identityStore.fingerprint);
+
+      navigator.geolocation.watchPosition(
+        this.watchPositionSuccess,
+        this.watchPositionError
+      );
+
+      // TODO: clean this up
+      setInterval(() => {
+        this.sendLastPosition();
+      }, 5000);
+    }
+
     if (
       this.identityStore.username === "" &&
       this.$route.path !== "/intro" &&

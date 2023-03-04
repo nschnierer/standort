@@ -1,8 +1,11 @@
 <script lang="ts">
 import { PlusIcon, TrashIcon } from "@heroicons/vue/24/solid";
 import { defineComponent } from "vue";
-import { useContacts } from "../../store/useContacts";
-import { useWebRTCHandler } from "../../store/useWebRTCHandler";
+import { mapStores } from "pinia";
+import addMinutes from "date-fns/addMinutes";
+import { useIdentityStore } from "~/store/useIdentityStore";
+import { useContacts } from "~/store/useContacts";
+import { useSessionHandlerStore } from "~/store/useSessionsStore";
 import { formatRelativeTime } from "../../utils";
 
 export default defineComponent({
@@ -11,11 +14,14 @@ export default defineComponent({
   data: (): { selectedContacts: string[] } => ({
     selectedContacts: [],
   }),
+  computed: {
+    ...mapStores(useIdentityStore),
+    ...mapStores(useSessionHandlerStore),
+  },
   setup: () => {
     const { contacts, removeContact } = useContacts();
-    const { sendOffer } = useWebRTCHandler();
 
-    return { contacts, removeContact, formatRelativeTime, sendOffer };
+    return { contacts, removeContact, formatRelativeTime };
   },
   methods: {
     onSelectContact: function (fingerprint: string) {
@@ -34,8 +40,12 @@ export default defineComponent({
       }
     },
     onShare: function () {
-      this.$data.selectedContacts.forEach((fingerprint) => {
-        this.sendOffer(fingerprint);
+      this.$data.selectedContacts.forEach((toFingerprint) => {
+        const end = addMinutes(new Date(), 60);
+        this.sessionHandlerStore.startSession({
+          to: toFingerprint,
+          end,
+        });
       });
       this.$router.push("/");
     },

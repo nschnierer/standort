@@ -27,7 +27,8 @@ export default {
   },
   methods: {
     async generate() {
-      this.dataUrl = await QRCode.toDataURL(this.data, {
+      const base64 = btoa(this.data);
+      this.dataUrl = await QRCode.toDataURL(base64, {
         color: { dark: this.colorDark, light: this.colorLight },
       });
     },
