@@ -138,7 +138,10 @@ export class WebRTCHandler {
       socketUrlWithParams.searchParams.append("apiKey", socketApiKey);
     }
 
-    this.socket = this.createWebSocket(socketUrlWithParams, socketProtocol);
+    this.socket = this.createWebSocket(
+      socketUrlWithParams.toString(),
+      socketProtocol
+    );
     this.socket.onopen = () => {
       this.startSequence?.next();
       console.log("Socket connected");
