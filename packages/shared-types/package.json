@@ -4,6 +4,12 @@
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
+  "exports": {
+    "import": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "zod": "^3.20.6"
   },

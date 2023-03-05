@@ -10,8 +10,16 @@ const server = http.createServer((request, response) => {
   response.end();
 });
 
-createWebSocketServer(server, { apiKey: API_KEY });
+const wsServer = createWebSocketServer(server, { apiKey: API_KEY });
 
 server.listen(PORT, () =>
   logger.info(`Started signaling server on port ${PORT}`)
 );
+
+process.on("SIGINT", () => {
+  logger.info("Shutting down signaling server gracefully...");
+  wsServer.shutDown();
+  server.close(() => {
+    process.exit();
+  });
+});

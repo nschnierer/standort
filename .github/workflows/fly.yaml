@@ -1,0 +1,37 @@
+name: Fly.io
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy-pwa:
+    name: Deployment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: docker/setup-buildx-action@v2
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl auth docker
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: ./ops/Dockerfile
+          target: signaling
+          tags: |
+            registry.fly.io/signaling-standort:${{ github.sha }}
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy
+        run: |
+          flyctl deploy \
+            --config ./apps/signaling/fly.toml \
+            --image registry.fly.io/signaling-standort:${{ github.sha }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

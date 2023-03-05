@@ -123,4 +123,5 @@ export const createWebSocketServer = (
   });
 
   wsServer.on("request", onRequest(apiKey));
+  return wsServer;
 };

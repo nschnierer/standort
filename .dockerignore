@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/.env*
+**/.turbo
+**/dist
+**/build
+**/coverage
+**/.cache
+**/.DS_Store
+.git
+.history
+.vscode
