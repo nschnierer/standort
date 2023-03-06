@@ -15,6 +15,15 @@ export const SocketMessageBaseZod = z
 
 export type SocketMessageBase = z.infer<typeof SocketMessageBaseZod>;
 
+export const SocketMessageDecryptedZod = SocketMessageBaseZod.extend({
+  data: z.object({
+    iv: z.array(z.number()),
+    encrypted: z.array(z.number()),
+  }),
+});
+
+export type SocketMessageDecrypted = z.infer<typeof SocketMessageDecryptedZod>;
+
 export const SocketMessageICEZod = SocketMessageBaseZod.extend({
   data: z.object({
     candidate: z.string().optional(),

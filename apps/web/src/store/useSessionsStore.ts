@@ -1,11 +1,7 @@
 import { defineStore } from "pinia";
-import { computed, reactive, watch } from "vue";
-import {
-  SocketMessageICEZod,
-  SocketMessageSDPZod,
-  FeatureCollection,
-} from "shared-types";
-import { WebRTCHandler, Envelope } from "~/utils/WebRTCHandler";
+import { useContactsStore } from "./useContacts";
+import { FeatureCollection } from "shared-types";
+import { WebRTCHandler } from "~/utils/WebRTCHandler";
 
 const iceServers = [
   { urls: ["stun:stun.sipgate.net", "stun:stun.services.mozilla.com"] },
@@ -77,12 +73,16 @@ interface StartSessionOptions {
 
 export const useSessionHandlerStore = defineStore("sessionHandler", () => {
   const sessionsStore = useSessionsStore();
+  const contactStore = useContactsStore();
 
   const webRTCHandler = new WebRTCHandler({
     socketUrl: SIGNALING_URL,
     socketApiKey: SIGNALING_API_KEY,
     iceServers,
   });
+
+  webRTCHandler.registerEncryptMessage(contactStore.encryptForContact);
+  webRTCHandler.registerDecryptMessage(contactStore.decryptFromContact);
 
   webRTCHandler.onMessage((from: string, message: FeatureCollection) => {
     const to = webRTCHandler.getMyCurrentFingerprint();

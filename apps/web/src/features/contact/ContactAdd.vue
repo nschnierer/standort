@@ -1,7 +1,8 @@
 <script lang="ts">
 import { ref } from "vue";
+import { mapStores } from "pinia";
 import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
-import { useContacts } from "../../store/useContacts";
+import { useContactsStore } from "../../store/useContacts";
 import { generateFingerprint } from "~/utils/cryptoHelpers";
 
 export default {
@@ -11,8 +12,6 @@ export default {
     const streamRef = ref<MediaStream | null>(null);
     const codeReaderRef = ref(new BrowserQRCodeReader());
     const scannerControlsRef = ref<IScannerControls | null>(null);
-
-    const { createContact } = useContacts();
 
     navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
       streamRef.value = stream;
@@ -25,9 +24,11 @@ export default {
       videoRef,
       streamRef,
       codeReaderRef,
-      createContact,
       scannerControlsRef,
     };
+  },
+  computed: {
+    ...mapStores(useContactsStore),
   },
   methods: {
     encodeContactData: async function (base64: string) {
@@ -50,11 +51,10 @@ export default {
       const fingerprint = await generateFingerprint(publicKey);
       console.log(fingerprint);
 
-      await this.createContact({
+      await this.contactsStore.createContact({
         username,
         fingerprint,
         publicKey,
-        addedAt: new Date(),
       });
       return true;
     },

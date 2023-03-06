@@ -1,64 +1,102 @@
 import { reactive, onMounted } from "vue";
-import localforage from "localforage";
+import { defineStore } from "pinia";
+import { useIdentityStore } from "~/store/useIdentityStore";
+import {
+  importPublicKey,
+  deriveSecretKey,
+  encrypt,
+  decrypt,
+  EncryptedData,
+} from "~/utils/cryptoHelpers";
 
+/**
+ * A contact is a identity of another user.
+ * It contains relevant data to establish a secure connection.
+ */
 export type Contact = {
+  /** SHA-256 hash of the public key */
   fingerprint: string;
+  /** Username defined by the user */
   username: string;
+  /** Public key in JWK format */
   publicKey: JsonWebKey;
+  /** Date when the contact was added */
   addedAt: Date;
 };
 
-var contactsStore = localforage.createInstance({
-  name: "contacts",
+export const useContactsStore = defineStore("contacts", {
+  state: () => ({
+    contacts: [] as Contact[],
+  }),
+  actions: {
+    /**
+     * Create a new contact.
+     */
+    async createContact(contact: Omit<Contact, "addedAt">) {
+      this.$patch((state) => {
+        state.contacts.push({ ...contact, addedAt: new Date() });
+      });
+    },
+
+    /**
+     * Remove a contact by its fingerprint.
+     */
+    async removeContact(fingerprint: string) {
+      this.$patch((state) => {
+        state.contacts = state.contacts.filter(
+          (contact) => contact.fingerprint !== fingerprint
+        );
+      });
+    },
+
+    /**
+     * Encrypt message for the given contact.
+     * @param fingerprint Contact's fingerprint
+     * @param message Message to encrypt
+     * @returns Cipher object
+     */
+    async encryptForContact(fingerprint: string, message: string) {
+      const contact = this.contacts.find(
+        (contact) => contact.fingerprint === fingerprint
+      );
+      if (!contact) {
+        throw new Error("Contact not found");
+      }
+      // Get private key of my identity
+      const identityStore = await useIdentityStore();
+      const privateKey = await identityStore.privateCryptoKey();
+      // Get public key of the contact
+      const publicKey = await importPublicKey(contact.publicKey);
+
+      // Derive a secret key from the private and public key
+      const secretKey = await deriveSecretKey(privateKey, publicKey);
+
+      return encrypt(secretKey, message);
+    },
+
+    /**
+     * Decrypt a message from the given contact.
+     * @param fingerprint Contact's fingerprint
+     * @param cipher Cipher object
+     * @returns Plaintext message
+     */
+    async decryptFromContact(fingerprint: string, cipher: EncryptedData) {
+      const contact = this.contacts.find(
+        (contact) => contact.fingerprint === fingerprint
+      );
+      if (!contact) {
+        throw new Error("Contact not found");
+      }
+      // Get private key of my identity
+      const identityStore = await useIdentityStore();
+      const privateKey = await identityStore.privateCryptoKey();
+      // Get public key of the contact
+      const publicKey = await importPublicKey(contact.publicKey);
+
+      // Derive a secret key from the private and public key
+      const secretKey = await deriveSecretKey(privateKey, publicKey);
+
+      return decrypt(secretKey, cipher);
+    },
+  },
 });
-
-// Create a reactive state for managing contacts
-const contacts = reactive<Contact[]>([]);
-
-export const useContacts = () => {
-  // Define a computed property for filtering contacts by name
-  // const filterContacts = computed(() => {
-  //  return contacts.filter((contact) => contact.name.includes(search));
-  // });
-
-  // Define a function for loading contact data from the API
-  const loadContacts = async () => {
-    const entries: Contact[] = [];
-    await contactsStore.iterate((value: Omit<Contact, "fingerprint">, key) => {
-      entries.push({ fingerprint: key, ...value });
-    });
-    contacts.splice(0, contacts.length, ...entries);
-  };
-
-  // Define a function for adding a new contact
-  const createContact = async (contact: Contact) => {
-    const { fingerprint, ...data } = contact;
-    try {
-      await contactsStore.setItem(fingerprint, data);
-      loadContacts();
-    } catch (err) {
-      console.error("Unable to create contact", err);
-    }
-  };
-
-  // Define a function for removing a contact
-  const removeContact = async (fingerprint: string) => {
-    try {
-      await contactsStore.removeItem(fingerprint);
-      loadContacts();
-    } catch (err) {
-      console.error("Unable to delete contact", err);
-    }
-  };
-
-  // Load the contact data when the component is mounted
-  onMounted(loadContacts);
-
-  // Return the reactive state and the functions
-  return {
-    contacts,
-    createContact,
-    removeContact,
-    loadContacts,
-  };
-};

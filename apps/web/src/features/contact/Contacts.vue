@@ -4,7 +4,7 @@ import { defineComponent } from "vue";
 import { mapStores } from "pinia";
 import addMinutes from "date-fns/addMinutes";
 import { useIdentityStore } from "~/store/useIdentityStore";
-import { useContacts } from "~/store/useContacts";
+import { useContactsStore } from "~/store/useContacts";
 import { useSessionHandlerStore } from "~/store/useSessionsStore";
 import { formatRelativeTime } from "../../utils";
 
@@ -16,12 +16,13 @@ export default defineComponent({
   }),
   computed: {
     ...mapStores(useIdentityStore),
+    ...mapStores(useContactsStore),
     ...mapStores(useSessionHandlerStore),
   },
   setup: () => {
-    const { contacts, removeContact } = useContacts();
-
-    return { contacts, removeContact, formatRelativeTime };
+    return {
+      formatRelativeTime,
+    };
   },
   methods: {
     onSelectContact: function (fingerprint: string) {
@@ -36,7 +37,7 @@ export default defineComponent({
     onRemoveContact: function (fingerprint: string) {
       const ok = confirm("Are you sure you want to remove this contact?");
       if (ok) {
-        this.removeContact(fingerprint);
+        this.contactsStore.removeContact(fingerprint);
       }
     },
     onShare: function () {
@@ -70,10 +71,13 @@ export default defineComponent({
     <div
       class="max-w-md mx-auto p-4 pt-8 flex flex-col space-y-4 pb-36 flex-1 w-full"
     >
-      <div v-if="contacts.length === 0" class="text-center">
+      <div v-if="contactsStore.contacts.length === 0" class="text-center">
         No contacts yet.
       </div>
-      <template v-for="contact in contacts" :key="contact.fingerprint">
+      <template
+        v-for="contact in contactsStore.contacts"
+        :key="contact.fingerprint"
+      >
         <div class="flex space-x-4">
           <div class="flex items-center">
             <label class="inline-flex items-center">
@@ -96,7 +100,7 @@ export default defineComponent({
           </div>
           <div class="">
             <div class="text-right">
-              {{ formatRelativeTime(contact.addedAt) }}
+              {{ formatRelativeTime(new Date(contact.addedAt)) }}
             </div>
             <div class="flex justify-end">
               <button @click="onRemoveContact(contact.fingerprint)">

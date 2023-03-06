@@ -3,6 +3,7 @@ import {
   generateKeyPair,
   exportKey,
   generateFingerprint,
+  importPrivateKey,
 } from "~/utils/cryptoHelpers";
 
 export type Identity = {
@@ -45,6 +46,12 @@ export const useIdentityStore = defineStore("identity", {
         updatedAt: state.updatedAt,
         createdAt: state.createdAt,
       };
+    },
+    privateCryptoKey: (state) => async () => {
+      if (!state.privateKey) {
+        throw new Error("No private key available");
+      }
+      return importPrivateKey(state.privateKey);
     },
   },
   actions: {

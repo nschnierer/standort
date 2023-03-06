@@ -7,8 +7,9 @@ import {
   FeatureCollectionZod,
   FeatureCollection,
   SocketMessageBase,
+  SocketMessageDecryptedZod,
 } from "shared-types";
-
+import { EncryptedData } from "~/utils/cryptoHelpers";
 /**
  * Creates a WebSocket instance.
  */
@@ -76,6 +77,16 @@ export class WebRTCHandler {
     from: string,
     message: FeatureCollection
   ) => void = () => {};
+
+  // Register encrypt and decrypt functions:
+  private encryptMessage?: (
+    to: string,
+    message: string
+  ) => Promise<EncryptedData>;
+  private decryptMessage?: (
+    to: string,
+    message: EncryptedData
+  ) => Promise<string>;
 
   constructor(
     private readonly options: WebRTCHandlerOptions,
@@ -165,7 +176,7 @@ export class WebRTCHandler {
     this.socket.close();
   }
 
-  private onSignalingMessage(messageRaw: MessageEvent) {
+  private async onSignalingMessage(messageRaw: MessageEvent) {
     let message: SocketMessageBase;
     try {
       message = JSON.parse(messageRaw.data);
@@ -174,10 +185,36 @@ export class WebRTCHandler {
       return;
     }
 
+    let data = message.data;
+
+    // Handle encrypted messages
+    const parsedEncrypted = SocketMessageDecryptedZod.safeParse(message);
+    if (parsedEncrypted.success) {
+      if (!this.decryptMessage) {
+        console.error(
+          "Received encrypted message but no decryptMessage registered."
+        );
+        return;
+      }
+      const rawData = await this.decryptMessage(
+        message.from,
+        parsedEncrypted.data.data
+      );
+      try {
+        data = JSON.parse(rawData);
+      } catch (error) {
+        console.error(
+          "Unable to parse decrypted socket message as JSON",
+          error
+        );
+        return;
+      }
+    }
+
     // For the following checks we use the Zod schema
     // to securely validate and parse incoming messages.
 
-    const parsedSDP = SocketMessageSDPZod.safeParse(message);
+    const parsedSDP = SocketMessageSDPZod.safeParse({ ...message, data });
     if (parsedSDP.success) {
       const { type } = parsedSDP.data.data;
       switch (type) {
@@ -190,7 +227,7 @@ export class WebRTCHandler {
       }
     }
 
-    const parsedIce = SocketMessageICEZod.safeParse(message);
+    const parsedIce = SocketMessageICEZod.safeParse({ ...message, data });
     if (parsedIce.success) {
       this.handleIceCandidate(parsedIce.data);
       return;
@@ -199,7 +236,15 @@ export class WebRTCHandler {
     console.warn("Unknown signaling message", message);
   }
 
-  private sendSignalingMessage(message: SocketMessage) {
+  private async sendSignalingMessage(message: SocketMessage) {
+    if (this.encryptMessage) {
+      const data = await this.encryptMessage(
+        message.to,
+        JSON.stringify(message.data)
+      );
+      this.socket?.send(JSON.stringify({ ...message, data }));
+      return;
+    }
     this.socket?.send(JSON.stringify(message));
   }
 
@@ -341,5 +386,12 @@ export class WebRTCHandler {
     callback: (from: string, message: FeatureCollection) => void
   ) {
     this.onDataChannelMessage = callback;
+  }
+
+  public registerEncryptMessage(func: typeof this.encryptMessage) {
+    this.encryptMessage = func;
+  }
+  public registerDecryptMessage(func: typeof this.decryptMessage) {
+    this.decryptMessage = func;
   }
 }
