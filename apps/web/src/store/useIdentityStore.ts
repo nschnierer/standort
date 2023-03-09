@@ -37,6 +37,7 @@ export const useIdentityStore = defineStore("identity", {
         ? { username: state.username, ...state.publicKey }
         : null;
     },
+    /** Data to be exported to a file which is used to restore the identity */
     exportData: (state) => {
       return {
         username: state.username,
@@ -47,6 +48,7 @@ export const useIdentityStore = defineStore("identity", {
         createdAt: state.createdAt,
       };
     },
+    /** Returns the private key as a CryptoKey */
     privateCryptoKey: (state) => async () => {
       if (!state.privateKey) {
         throw new Error("No private key available");

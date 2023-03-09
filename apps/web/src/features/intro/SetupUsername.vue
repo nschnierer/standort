@@ -79,11 +79,11 @@ export default {
     v-on:submit.prevent="onSubmit"
   >
     <div class="w-full max-w-md px-2 mx-auto text-center">
-      <h1 class="text-3xl text-white">Your name</h1>
-
+      <label id="username-label" class="text-3xl text-white">Your name</label>
       <div class="flex flex-col items-center justify-center">
         <input
           type="text"
+          aria-labelledby="username-label"
           aria-describedby="username-description"
           v-model="username"
           maxlength="35"

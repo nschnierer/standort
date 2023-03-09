@@ -5,8 +5,9 @@ import { useIdentityStore } from "~/store/useIdentityStore";
 export default {
   name: "SetupIdentity",
   data: () => ({
-    timeout: 0,
-    timeoutDelay: 4000,
+    animationTimeout: 0,
+    animationDurationMS: 4000,
+    showIdentity: false,
     savedIdentity: false,
   }),
   emits: ["on-submit"],
@@ -63,17 +64,18 @@ export default {
     },
   },
   mounted() {
-    this.timeout = window.setTimeout(async () => {
-      // Wait 4 seconds before generating the keys.
-      await this.identityStore.generateKeys();
+    // Generate a new identity (public/private keys).
+    this.identityStore.generateKeys();
+
+    this.animationTimeout = window.setTimeout(async () => {
+      this.showIdentity = true;
       // Force update to show the QR code.
       // Sometimes the QR code is not rendered correctly.
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       this.$forceUpdate();
-    }, this.timeoutDelay);
+    }, this.animationDurationMS);
   },
   beforeUnmount() {
-    window.clearTimeout(this.timeout);
+    window.clearTimeout(this.animationTimeout);
   },
 };
 </script>
@@ -91,7 +93,7 @@ export default {
 </style>
 
 <template>
-  <SquaresBackground :animate="!identityStore.qrCodeData" />
+  <SquaresBackground :animate="!showIdentity" />
   <form
     class="flex items-center justify-center flex-1 gradient"
     v-on:submit.prevent="onSubmit"
@@ -99,11 +101,11 @@ export default {
     <div
       class="flex flex-col items-center w-full max-w-md px-2 mx-auto space-y-3 text-center"
     >
-      <template v-if="!identityStore.qrCodeData">
+      <template v-if="!showIdentity">
         <h1 class="text-3xl text-white">Generate your identity.</h1>
       </template>
 
-      <template v-if="identityStore.qrCodeData">
+      <template v-if="showIdentity">
         <div class="relative flex justify-center w-24 h-24">
           <div class="absolute flex items-center justify-center w-full h-full">
             <p class="font-bold text-white text-1xl opacity-90">
@@ -149,7 +151,7 @@ export default {
       <div class="w-full p-2">
         <button
           type="submit"
-          :disabled="!identityStore.qrCodeData || !savedIdentity"
+          :disabled="!showIdentity || !savedIdentity"
           class="flex justify-center w-full px-4 py-4 font-bold bg-white rounded text-violet-600 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Next
