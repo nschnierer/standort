@@ -71,8 +71,11 @@ export default defineComponent({
     <div
       class="max-w-md mx-auto p-4 pt-8 flex flex-col space-y-4 pb-36 flex-1 w-full"
     >
-      <div v-if="contactsStore.contacts.length === 0" class="text-center">
-        No contacts yet.
+      <div
+        v-if="contactsStore.contacts.length === 0"
+        class="flex flex-col text-center text-gray-500 italic"
+      >
+        <p>Add contacts by clicking the plus icon.</p>
       </div>
       <template
         v-for="contact in contactsStore.contacts"

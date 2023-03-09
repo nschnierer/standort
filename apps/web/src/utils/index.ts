@@ -1,2 +1,2 @@
-export * from "./formatRelativeTime";
+export * from "./formatTime";
 export * from "./generateFingerprint";

@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
+import isBefore from "date-fns/isBefore";
+import { useIdentityStore } from "./useIdentityStore";
 import { useContactsStore } from "./useContacts";
-import { FeatureCollection } from "shared-types";
+import { SessionMessage, Feature } from "shared-types";
 import { WebRTCHandler } from "~/utils/WebRTCHandler";
 
 const iceServers = [
@@ -16,35 +18,51 @@ console.log("Use signaling server:", SIGNALING_URL);
 export interface Session {
   from: string;
   to: string;
-  start: Date;
-  end: Date;
-  lastPosition: FeatureCollection | null;
+  start: string;
+  end: string;
+  lastPosition: Feature | null;
 }
+
+const isActiveSession = (session: Session, current = new Date()) => {
+  return isBefore(current, new Date(session.end));
+};
 
 export const useSessionsStore = defineStore("sessions", {
   state: (): { sessions: Session[] } => ({
     sessions: [],
   }),
   getters: {
-    activeSessions: (state) => {
-      return state.sessions.filter(
-        (session) => new Date(session.end) > new Date()
-      );
+    activeSessions(state) {
+      return state.sessions.filter((session) => isActiveSession(session));
     },
-    activeFingerprints: (state) => {
-      const fingerprints = new Set<string>();
-      state.sessions.forEach((session) => {
-        console.log("Session end:", session.end);
-        if (new Date(session.end) > new Date()) {
-          fingerprints.add(session.from);
-          fingerprints.add(session.to);
+    activeSessionPerContact() {
+      const myFingerprint = useIdentityStore().fingerprint;
+
+      const contactMap: {
+        [contactFingerprint: string]: {
+          incoming?: Session;
+          outgoing?: Session;
+        };
+      } = {};
+
+      for (const session of this.activeSessions) {
+        if (myFingerprint === session.from) {
+          contactMap[session.to] = {
+            ...contactMap[session.to],
+            outgoing: session,
+          };
+        } else {
+          contactMap[session.from] = {
+            ...contactMap[session.from],
+            incoming: session,
+          };
         }
-      });
-      return Array.from(fingerprints);
+      }
+      return contactMap;
     },
   },
   actions: {
-    addSession(session: Session) {
+    upsertSession(session: Session) {
       const index = this.$state.sessions.findIndex(
         ({ from, to }) => session.from === from && session.to === to
       );
@@ -84,34 +102,40 @@ export const useSessionHandlerStore = defineStore("sessionHandler", () => {
   webRTCHandler.registerEncryptMessage(contactStore.encryptForContact);
   webRTCHandler.registerDecryptMessage(contactStore.decryptFromContact);
 
-  webRTCHandler.onMessage((from: string, message: FeatureCollection) => {
+  webRTCHandler.onMessage((from: string, message: SessionMessage) => {
     const to = webRTCHandler.getMyCurrentFingerprint();
-    sessionsStore.addSession({
+    sessionsStore.upsertSession({
       from,
       to,
-      start: new Date(),
-      end: new Date(),
-      lastPosition: message,
+      start: message.start,
+      end: message.end,
+      lastPosition: message.position,
     });
   });
 
   const startSession = ({ to, end }: StartSessionOptions) => {
     const from = webRTCHandler.getMyCurrentFingerprint();
-    sessionsStore.addSession({
+    sessionsStore.upsertSession({
       from,
       to,
-      start: new Date(),
-      end,
+      start: new Date().toISOString(),
+      end: end.toISOString(),
       lastPosition: null,
     });
     webRTCHandler.sendOffer(to);
   };
 
-  const sendToSessions = (data: FeatureCollection) => {
+  const sendToSessions = (data: Feature) => {
     const from = webRTCHandler.getMyCurrentFingerprint();
     sessionsStore.sessions.forEach((session) => {
-      if (session.from === from) {
-        webRTCHandler.sendMessage(session.to, data);
+      const start = new Date(session.start);
+      const end = new Date(session.end);
+      if (session.from === from && new Date() <= end) {
+        webRTCHandler.sendMessage(session.to, {
+          start: start.toISOString(),
+          end: end.toISOString(),
+          position: data,
+        });
       }
     });
   };
@@ -122,7 +146,10 @@ export const useSessionHandlerStore = defineStore("sessionHandler", () => {
   };
 
   const start = (myFingerprint: string) => {
-    webRTCHandler.start(myFingerprint, sessionsStore.activeFingerprints);
+    const contactFingerprints = Object.keys(
+      sessionsStore.activeSessionPerContact
+    );
+    webRTCHandler.start(myFingerprint, contactFingerprints);
   };
 
   return {

@@ -4,10 +4,10 @@ import {
   SocketMessageICE,
   SocketMessageSDPZod,
   SocketMessageSDP,
-  FeatureCollectionZod,
-  FeatureCollection,
   SocketMessageBase,
   SocketMessageDecryptedZod,
+  SessionMessageZod,
+  SessionMessage,
 } from "shared-types";
 import { EncryptedData } from "~/utils/cryptoHelpers";
 /**
@@ -46,15 +46,6 @@ const defaultRTCIceCandidate = (
   return new RTCIceCandidate(...params);
 };
 
-export interface EnvelopeMeta {
-  from: string;
-  to: string;
-}
-
-export interface Envelope extends EnvelopeMeta {
-  data: FeatureCollection;
-}
-
 interface Peer {
   connection: RTCPeerConnection;
   channel: RTCDataChannel;
@@ -75,7 +66,7 @@ export class WebRTCHandler {
   private readonly peers: Map<string, Peer> = new Map();
   private onDataChannelMessage: (
     from: string,
-    message: FeatureCollection
+    message: SessionMessage
   ) => void = () => {};
 
   // Register encrypt and decrypt functions:
@@ -286,7 +277,7 @@ export class WebRTCHandler {
 
         try {
           const object = JSON.parse(event.data);
-          const data = FeatureCollectionZod.parse(object);
+          const data = SessionMessageZod.parse(object);
           this.onDataChannelMessage(to, data);
         } catch (error) {
           console.error("Unable to parse message", error);
@@ -377,14 +368,17 @@ export class WebRTCHandler {
     connection.addIceCandidate(this.createRTCIceCandidate(message.data));
   }
 
-  public sendMessage(to: string, message: FeatureCollection) {
+  public sendMessage(to: string, message: SessionMessage) {
     const { channel } = this.getOrCreatePeer(to);
-    channel.send(JSON.stringify(message));
+    try {
+      channel.send(JSON.stringify(message));
+    } catch (err) {
+      this.sendOffer(to);
+      console.error("Unable to send message", err);
+    }
   }
 
-  public onMessage(
-    callback: (from: string, message: FeatureCollection) => void
-  ) {
+  public onMessage(callback: (from: string, message: SessionMessage) => void) {
     this.onDataChannelMessage = callback;
   }
 

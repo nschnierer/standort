@@ -43,7 +43,11 @@ export default {
 </script>
 
 <template>
-  <AppBar title="Me" showBackButton :onClickBack="() => $router.push('/')" />
+  <AppBar
+    title="My Identity"
+    showBackButton
+    :onClickBack="() => $router.push('/')"
+  />
   <div class="flex flex-col justify-center w-full p-4 space-y-6">
     <div class="flex flex-col justify-center">
       <div v-if="identityStore.qrCodeData" class="flex justify-center w-full">
