@@ -1,6 +1,6 @@
 <script lang="ts">
 import { mapStores } from "pinia";
-import { FeatureCollection } from "shared-types";
+import { Feature } from "shared-types";
 import { useIdentityStore } from "~/store/useIdentityStore";
 import { useSessionHandlerStore } from "~/store/useSessionsStore";
 
@@ -8,10 +8,10 @@ export default {
   name: "App",
   data: (): {
     address: string;
-    lastFeatureCollection: FeatureCollection | null;
+    lastPosition: Feature | null;
   } => ({
     address: "",
-    lastFeatureCollection: null,
+    lastPosition: null,
   }),
   computed: {
     ...mapStores(useIdentityStore),
@@ -20,29 +20,26 @@ export default {
   methods: {
     watchPositionSuccess: function (position: GeolocationPosition) {
       const { latitude, longitude } = position.coords;
-      const featureCollection: FeatureCollection = {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "Point",
-              coordinates: [longitude, latitude],
-            },
-          },
-        ],
+      const feature: Feature = {
+        type: "Feature",
+        properties: {
+          createdAt: new Date(position.timestamp),
+        },
+        geometry: {
+          type: "Point",
+          coordinates: [longitude, latitude],
+        },
       };
-      this.lastFeatureCollection = featureCollection;
-      this.sessionHandlerStore.sendToSessions(featureCollection);
+      this.lastPosition = feature;
+      this.sessionHandlerStore.sendToSessions(feature);
       console.log("watchPositionSuccess called", { latitude, longitude });
     },
     watchPositionError: function (error: GeolocationPositionError) {
       console.error(error);
     },
     sendLastPosition: function () {
-      if (this.lastFeatureCollection) {
-        this.sessionHandlerStore.sendToSessions(this.lastFeatureCollection);
+      if (this.lastPosition) {
+        this.sessionHandlerStore.sendToSessions(this.lastPosition);
       }
     },
   },

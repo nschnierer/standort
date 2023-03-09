@@ -28,6 +28,17 @@ export const useContactsStore = defineStore("contacts", {
   state: () => ({
     contacts: [] as Contact[],
   }),
+  getters: {
+    getContactUsername: (state) => (fingerprint: string) => {
+      const contact = state.contacts.find(
+        (contact) => contact.fingerprint === fingerprint
+      );
+      if (!contact) {
+        return "Unknown";
+      }
+      return contact.username ?? "Unknown";
+    },
+  },
   actions: {
     /**
      * Create a new contact.

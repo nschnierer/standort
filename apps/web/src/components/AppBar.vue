@@ -32,16 +32,19 @@ export default {
 };
 </script>
 
+<style scoped>
+header {
+  min-height: 3.8rem;
+  max-height: 3.8rem;
+}
+</style>
+
 <template>
   <header
-    class="sticky top-0 z-30 flex items-center justify-center h-16 bg-violet-600"
+    class="sticky top-0 z-30 flex items-center justify-center bg-violet-600"
   >
     <div class="flex h-full px-2 py-2 items-center justify-start w-28">
-      <button
-        v-if="showBackButton"
-        @click="onClickBackHandler"
-        class="h-full px-2"
-      >
+      <button v-if="showBackButton" @click="onClickBackHandler" class="h-full">
         <ChevronLeftIcon class="h-8 w-8 text-white" />
       </button>
     </div>
