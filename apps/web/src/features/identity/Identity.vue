@@ -1,13 +1,20 @@
 <script lang="ts">
 import { mapStores } from "pinia";
+import localforage from "localforage";
 import {
   ClipboardIcon,
   InformationCircleIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/vue/24/outline";
 import { useIdentityStore } from "~/store/useIdentityStore";
 
+const appState = localforage.createInstance({
+  name: "standort-state",
+});
+
 export default {
   name: "User",
+  components: { ClipboardIcon, InformationCircleIcon, ExclamationTriangleIcon },
   data: () => ({
     usernameInput: "",
   }),
@@ -15,13 +22,6 @@ export default {
     ...mapStores(useIdentityStore),
   },
   methods: {
-    copyFingerprint: function () {
-      try {
-        navigator.clipboard.writeText(this.identityStore.fingerprint);
-      } catch (err) {
-        console.error(err);
-      }
-    },
     onClickUpdate: function () {
       this.identityStore.$patch({
         username: this.usernameInput,
@@ -29,10 +29,11 @@ export default {
     },
     onClickGenerateMyKey: async function () {
       const yes = confirm(
-        "Are you sure you want to generate a new key pair? This will invalidate your old key pair."
+        "Are you sure you want to wipe all your data? This action cannot be undone."
       );
       if (yes) {
-        this.identityStore.generateKeys();
+        await appState.clear();
+        window.location.reload();
       }
     },
   },
@@ -53,16 +54,16 @@ export default {
       <div v-if="identityStore.qrCodeData" class="flex justify-center w-full">
         <QRCodeImage :data="JSON.stringify(identityStore.qrCodeData)" />
       </div>
-      <div v-if="identityStore.fingerprint" class="flex w-full text-center">
-        <code class="w-full truncate">{{ identityStore.fingerprint }}</code>
-        <button className="pl-1 hover:text-gray-700" @click="copyFingerprint()">
-          <ClipboardIcon class="w-6 h-6" />
-        </button>
+      <div v-if="identityStore.fingerprint" class="flex w-full justify-center">
+        <code class="px-1 rounded-md border border-violet-600 text-violet-700">
+          {{ identityStore.fingerprint.slice(0, 8) }}
+        </code>
       </div>
     </div>
+
     <div class="flex flex-col">
       <input
-        class="p-2 py-3 border border-gray-500"
+        class="p-2 py-3 border border-violet-500 rounded-md"
         type="text"
         v-model="usernameInput"
         placeholder="Username, Pseudonym, etc."
@@ -70,26 +71,24 @@ export default {
       />
       <button
         @click="onClickUpdate()"
-        className="p-1 bg-gray-900 rounded-md py-2 text-white mt-1"
+        className="p-3 bg-violet-600 rounded-md text-white mt-1"
       >
-        Update
+        Update your name
       </button>
     </div>
 
-    <button
-      @click="onClickGenerateMyKey()"
-      className="p-1 bg-gray-900 rounded-md py-2 text-white"
-    >
-      [DANGER] Generate new key pair
-    </button>
-    <div
-      v-if="!identityStore.fingerprint"
-      class="flex items-center space-x-4 text-md"
-    >
-      <InformationCircleIcon class="w-12 h-12 text-violet-700" />
-      <div>
-        You don't have a key pair yet. Click the button above to generate one.
-      </div>
+    <div class="flex flex-col w-full space-y-1">
+      <button
+        @click="onClickGenerateMyKey()"
+        className="p-3 bg-red-600 rounded-md text-white mt-1 flex space-x-2 justify-center items-center"
+      >
+        <ExclamationTriangleIcon class="w-6 h-6" />
+        <span>Wipe my data</span>
+      </button>
+      <p class="text-sm text-gray-500">
+        This action will delete all contacts and your identity. Please make sure
+        you backup your identity before.
+      </p>
     </div>
   </div>
 </template>

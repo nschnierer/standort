@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import isBefore from "date-fns/isBefore";
 import { useIdentityStore } from "./useIdentityStore";
-import { useContactsStore } from "./useContacts";
+import { useContactsStore } from "./useContactsStore";
 import { SessionMessage, Feature } from "shared-types";
 import { WebRTCHandler } from "~/utils/WebRTCHandler";
 

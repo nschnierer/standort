@@ -19,6 +19,11 @@ export default {
       required: false,
       default: false,
     },
+    transparent: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
   },
   methods: {
     onClickBackHandler(event: Event) {
@@ -41,7 +46,11 @@ header {
 
 <template>
   <header
-    class="sticky top-0 z-30 flex items-center justify-center bg-violet-600"
+    class="w-full top-0 z-30 flex items-center justify-center"
+    :class="{
+      'fixed bg-transparent': transparent,
+      'sticky bg-violet-600': !transparent,
+    }"
   >
     <div class="flex h-full px-2 py-2 items-center justify-start w-28">
       <button v-if="showBackButton" @click="onClickBackHandler" class="h-full">

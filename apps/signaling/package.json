@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "NODE_OPTIONS='--experimental-specifier-resolution=node' nodemon --exec node --loader ts-node/esm ./src/server.ts",
-    "start": "NODE_OPTIONS='--es-module-specifier-resolution=node' node dist/server.js",
+    "dev": "NODE_OPTIONS='--experimental-specifier-resolution=node' NODE_NO_WARNINGS=1 nodemon --exec node --loader ts-node/esm ./src/server.ts",
+    "start": "NODE_OPTIONS='--es-module-specifier-resolution=node' NODE_NO_WARNINGS=1 node dist/server.js",
     "lint": "eslint",
     "test": "vitest"
   },

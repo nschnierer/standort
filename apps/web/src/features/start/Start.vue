@@ -7,7 +7,7 @@ import {
   useSessionsStore,
   useSessionHandlerStore,
 } from "~/store/useSessionsStore";
-import { useContactsStore } from "~/store/useContacts";
+import { useContactsStore } from "~/store/useContactsStore";
 import { UserCircleIcon, PlusIcon } from "@heroicons/vue/24/solid";
 
 export default {
@@ -122,7 +122,7 @@ export default {
 <template>
   <AppBar title="standort.live">
     <template v-slot:right>
-      <router-link to="/user" class="h-full flex items-center">
+      <router-link to="/identity" class="h-full flex items-center">
         <UserCircleIcon class="h-10 w-10 text-white" />
       </router-link>
     </template>

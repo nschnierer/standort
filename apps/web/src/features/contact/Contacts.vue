@@ -4,7 +4,7 @@ import { defineComponent } from "vue";
 import { mapStores } from "pinia";
 import addMinutes from "date-fns/addMinutes";
 import { useIdentityStore } from "~/store/useIdentityStore";
-import { useContactsStore } from "~/store/useContacts";
+import { useContactsStore } from "~/store/useContactsStore";
 import { useSessionHandlerStore } from "~/store/useSessionsStore";
 import { formatRelativeTime } from "../../utils";
 
