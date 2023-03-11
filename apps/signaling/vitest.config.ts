@@ -3,6 +3,9 @@ import { defineConfig, configDefaults } from "vitest/config";
 export default defineConfig({
   test: {
     globals: true,
-    root: "./src",
+    coverage: {
+      all: true,
+      include: ["src/**/*.ts"],
+    },
   },
 });

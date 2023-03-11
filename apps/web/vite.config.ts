@@ -19,5 +19,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./tests/setupTests.ts"],
+    coverage: {
+      all: true,
+      include: ["src/**/*.{ts,vue}"],
+    },
   },
 });

@@ -31,4 +31,16 @@ jobs:
         run: npm run build
 
       - name: Test
-        run: npm run test
+        run: npm run test:coverage
+
+      - name: Upload signaling coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./apps/signaling/coverage/coverage-final.json
+          flags: unittests,signaling
+
+      - name: Upload web coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./apps/web/coverage/coverage-final.json
+          flags: unittests,web
