@@ -4,7 +4,6 @@ import { mapStores } from "pinia";
 import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
 import { XMarkIcon, ExclamationCircleIcon } from "@heroicons/vue/24/solid";
 import { useContactsStore } from "../../store/useContactsStore";
-import { generateFingerprint } from "~/utils/cryptoHelpers";
 
 export default {
   name: "ContactAdd",
@@ -62,8 +61,7 @@ export default {
             const base64 = await result.getText();
             const success = await this.encodeContactData(base64);
             if (success) {
-              controls.stop();
-              this.$router.push({ name: "Contact", replace: true });
+              this.$router.replace("/contacts");
             }
           }
         }
@@ -90,11 +88,8 @@ export default {
       }
       const { username, ...publicKey } = json;
 
-      const fingerprint = await generateFingerprint(publicKey);
-
       await this.contactsStore.createContact({
         username,
-        fingerprint,
         publicKey,
       });
       return true;
