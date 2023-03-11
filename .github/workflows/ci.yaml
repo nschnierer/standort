@@ -35,12 +35,14 @@ jobs:
 
       - name: Upload signaling coverage
         uses: codecov/codecov-action@v3
+        if: github.ref == 'refs/heads/main'
         with:
           files: ./apps/signaling/coverage/coverage-final.json
           flags: unittests,signaling
 
       - name: Upload web coverage
         uses: codecov/codecov-action@v3
+        if: github.ref == 'refs/heads/main'
         with:
           files: ./apps/web/coverage/coverage-final.json
           flags: unittests,web

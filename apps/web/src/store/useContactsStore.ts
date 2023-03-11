@@ -7,6 +7,7 @@ import {
   encrypt,
   decrypt,
   EncryptedData,
+  generateFingerprint,
 } from "~/utils/cryptoHelpers";
 
 /**
@@ -43,9 +44,10 @@ export const useContactsStore = defineStore("contacts", {
     /**
      * Create a new contact.
      */
-    async createContact(contact: Omit<Contact, "addedAt">) {
+    async createContact(contact: Omit<Contact, "addedAt" | "fingerprint">) {
+      const fingerprint = await generateFingerprint(contact.publicKey);
       this.$patch((state) => {
-        state.contacts.push({ ...contact, addedAt: new Date() });
+        state.contacts.push({ ...contact, fingerprint, addedAt: new Date() });
       });
     },
 
