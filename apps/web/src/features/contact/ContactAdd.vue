@@ -46,6 +46,13 @@ export default {
         this.streamRef = stream;
         // Show video stream in video element
         this.videoRef!.srcObject = stream;
+        // Fix for Safari:
+        // Wrap the play() method in a Promise
+        await new Promise((resolve, reject) => {
+          this.videoRef!.onplaying = resolve;
+          this.videoRef!.onerror = reject;
+          this.videoRef!.play();
+        });
       } catch (error) {
         this.error = "ACCESS_DENIED";
         this.loadingCamera = false;
@@ -57,9 +64,12 @@ export default {
         undefined,
         this.videoRef!,
         async (result, error, controls) => {
+          console.log("QR CODE RESPONSE", result, error);
           if (result) {
             const base64 = await result.getText();
+            console.log("QR CODE RESULT", base64);
             const success = await this.encodeContactData(base64);
+            console.log("QR CODE SUCCESS", success);
             if (success) {
               this.$router.replace("/contacts");
             }
@@ -84,6 +94,7 @@ export default {
       }
 
       if (!json) {
+        console.error("Invalid QR with empty JSON");
         return false;
       }
       const { username, ...publicKey } = json;
@@ -129,7 +140,9 @@ export default {
       id="contact-add-camera"
       ref="videoRef"
       autoplay
-      class="object-fit object-position w-full h-full"
+      playsinline
+      muted
+      class="object-contain object-position w-full h-full"
     />
     <div v-if="error" class="p-4 w-full flex flex-col space-y-3 items-center">
       <ExclamationCircleIcon class="h-12 w-12 text-red-500" />
