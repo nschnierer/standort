@@ -51,8 +51,8 @@ export default {
   />
   <div class="flex flex-col justify-center w-full p-4 space-y-6">
     <div class="flex flex-col justify-center">
-      <div v-if="identityStore.qrCodeData" class="flex justify-center w-full">
-        <QRCodeImage :data="JSON.stringify(identityStore.qrCodeData)" />
+      <div v-if="identityStore.shareData" class="flex justify-center w-full">
+        <QRCodeImage :data="identityStore.shareData" />
       </div>
       <div v-if="identityStore.fingerprint" class="flex w-full justify-center">
         <code class="px-1 rounded-md border border-violet-600 text-violet-700">

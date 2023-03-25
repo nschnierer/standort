@@ -19,4 +19,15 @@ describe("useIdentityStore", () => {
     expect(identityStore.publicKey).toBeDefined();
     expect(identityStore.privateKey).toBeDefined();
   });
+
+  it("should generate a getter shareData", async () => {
+    // Create a identity
+    const identityStore = useIdentityStore();
+    await identityStore.generateKeys();
+    // Update the username
+    identityStore.$patch({ username: "Alice" });
+
+    // Will be tested in useContactsStore.spec.ts
+    expect(identityStore.shareData).toBeDefined();
+  });
 });

@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { ContactShare } from "shared-types";
 import {
   generateKeyPair,
   exportKey,
@@ -31,11 +32,17 @@ export const useIdentityStore = defineStore("identity", {
     createdAt: new Date(),
   }),
   getters: {
-    /** QR-Code data contains the username and the public key */
-    qrCodeData: (state) => {
-      return state.publicKey
-        ? { username: state.username, ...state.publicKey }
-        : null;
+    /**
+     * A Base64 string which contains a parsed `ContactShare` object.
+     * Should be used to share the own identity via a QR code or by URL.
+     */
+    shareData: (state) => {
+      const data = {
+        u: state.username,
+        ...state.publicKey,
+      } as ContactShare;
+      const base64 = btoa(JSON.stringify(data));
+      return base64;
     },
     /** Data to be exported to a file which is used to restore the identity */
     exportData: (state) => {
