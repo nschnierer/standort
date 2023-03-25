@@ -122,7 +122,11 @@ export default {
 <template>
   <AppBar title="standort.live">
     <template v-slot:right>
-      <router-link to="/identity" class="h-full flex items-center">
+      <router-link
+        to="/identity"
+        aria-label="Identity"
+        class="h-full flex items-center"
+      >
         <UserCircleIcon class="h-10 w-10 text-white" />
       </router-link>
     </template>

@@ -66,7 +66,7 @@ export default {
             );
             if (success) {
               this.stopCameraAndScanner();
-              this.$router.push("/contacts");
+              this.$router.replace("/contacts");
             }
           }
         );
@@ -97,14 +97,14 @@ export default {
 <template>
   <AppBar transparent>
     <template v-slot:right>
-      <router-link to="/contacts" replace class="h-full flex items-center">
-        <XMarkIcon class="h-10 w-10 text-white" />
+      <router-link to="/contacts" replace class="flex items-center h-full">
+        <XMarkIcon class="w-10 h-10 text-white" />
       </router-link>
     </template>
   </AppBar>
-  <div class="flex w-full h-full items-center justify-center bg-black">
+  <div class="flex items-center justify-center w-full h-full bg-black">
     <div
-      class="fixed flex flex-col space-y-3 items-center"
+      class="fixed flex flex-col items-center space-y-3"
       v-if="state === 'LOADING'"
     >
       <LoadingCircle class="w-8 h-8" />
@@ -116,14 +116,14 @@ export default {
       autoplay
       playsinline
       muted
-      class="object-contain object-position w-full h-full"
+      class="object-contain w-full h-full object-position"
     />
     <div
       v-if="state.startsWith('ERROR_')"
-      class="p-4 w-full flex flex-col space-y-3 items-center"
+      class="flex flex-col items-center w-full p-4 space-y-3"
     >
-      <ExclamationCircleIcon class="h-12 w-12 text-red-500" />
-      <div class="text-white text-center">
+      <ExclamationCircleIcon class="w-12 h-12 text-red-500" />
+      <div class="text-center text-white">
         <template v-if="state === 'ERROR_ACCESS_DENIED'">
           <p>Please allow access to the camera in your browser settings.</p>
         </template>

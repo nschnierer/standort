@@ -39,5 +39,11 @@ export default {
 </script>
 
 <template>
-  <img alt="QR-Code" v-if="dataUrl" :src="dataUrl" v-bind="$attrs" />
+  <img
+    alt="QR-Code"
+    v-if="dataUrl"
+    :src="dataUrl"
+    v-bind="$attrs"
+    :data-value="data"
+  />
 </template>

@@ -24,6 +24,8 @@ const routes: RouteRecordRaw[] = [
   { path: "/setup", component: Setup },
   { path: "/identity", component: Identity },
   { path: "/contacts", component: Contacts },
+  // Short path to contact, will be used add contact from URL
+  { path: "/c/:shareData", component: Contacts },
   { path: "/contacts/add", component: ContactAdd },
 ];
 

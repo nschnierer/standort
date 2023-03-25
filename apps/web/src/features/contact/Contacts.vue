@@ -92,6 +92,23 @@ export default defineComponent({
       });
       this.$router.push("/");
     },
+    /**
+     * Easy way to create a contact via URL:
+     * `http://localhost:5000/#/c/{BASE64_SHARE_DATA}`
+     * @param shareData
+     */
+    createContactViaURL: async function (shareData: string | string[]) {
+      if (typeof shareData === "string") {
+        await this.contactsStore.createContactFromShareData(shareData);
+      }
+      this.$router.replace("/contacts");
+      this.$forceUpdate();
+    },
+  },
+  mounted: function () {
+    if (this.$route.params.shareData) {
+      this.createContactViaURL(this.$route.params.shareData);
+    }
   },
 });
 </script>
@@ -114,8 +131,8 @@ export default defineComponent({
     :onClickBack="() => $router.push('/')"
   >
     <template v-slot:right>
-      <router-link to="/contacts/add" class="h-full px-2 flex items-center">
-        <PlusIcon class="h-8 w-8 text-white" />
+      <router-link to="/contacts/add" class="flex items-center h-full px-2">
+        <PlusIcon class="w-8 h-8 text-white" />
       </router-link>
     </template>
   </AppBar>
@@ -123,7 +140,7 @@ export default defineComponent({
   <div class="contact-list">
     <div
       v-if="contactsStore.contacts.length === 0"
-      class="flex flex-col text-center text-gray-500 italic"
+      class="flex flex-col italic text-center text-gray-500"
     >
       <p>Add contacts by clicking the plus icon.</p>
     </div>
@@ -136,9 +153,10 @@ export default defineComponent({
           <label class="inline-flex items-center">
             <input
               type="checkbox"
+              :aria-label="`Select ${contact.username}`"
               @click="onSelectContact(contact.fingerprint)"
               :selected="selectedContacts.includes(contact.fingerprint)"
-              class="w-5 h-5 text-violet-600 border border-gray-300 rounded-md checked:border-1 accent-violet-600 focus:ring-2 focus:ring-violet-500"
+              class="w-5 h-5 border border-gray-300 rounded-md text-violet-600 checked:border-1 accent-violet-600 focus:ring-2 focus:ring-violet-500"
             />
             <span class="hidden ml-2"
               >Select to share location with {{ contact.username }}</span
@@ -166,16 +184,16 @@ export default defineComponent({
   </div>
 
   <div class="sharing-settings-box">
-    <div class="flex flex-row items-center space-x-3 w-full max-w-md mx-auto">
+    <div class="flex flex-row items-center w-full max-w-md mx-auto space-x-3">
       <div class="flex-1 text-white">Time range:</div>
       <div>
         <button
           type="button"
-          class="flex w-10 h-10 rounded-full items-center justify-center bg-white disabled:bg-violet-300"
+          class="flex items-center justify-center w-10 h-10 bg-white rounded-full disabled:bg-violet-300"
           :disabled="selectedContacts.length === 0"
           @click="decreaseTimeRange"
         >
-          <MinusIcon class="h-8 w-8 text-violet-700" />
+          <MinusIcon class="w-8 h-8 text-violet-700" />
         </button>
       </div>
       <div class="w-24 text-center text-white">
@@ -184,11 +202,11 @@ export default defineComponent({
       <div>
         <button
           type="button"
-          class="flex w-10 h-10 rounded-full items-center justify-center bg-white disabled:bg-violet-300"
+          class="flex items-center justify-center w-10 h-10 bg-white rounded-full disabled:bg-violet-300"
           :disabled="selectedContacts.length === 0"
           @click="increaseTimeRange"
         >
-          <PlusIcon class="h-8 w-8 text-violet-700" />
+          <PlusIcon class="w-8 h-8 text-violet-700" />
         </button>
       </div>
     </div>
@@ -196,7 +214,7 @@ export default defineComponent({
       <button
         @click="onShare()"
         :disabled="selectedContacts.length === 0"
-        class="flex justify-center w-full px-4 py-4 font-bold text-violet-700 bg-white rounded disabled:bg-violet-300"
+        class="flex justify-center w-full px-4 py-4 font-bold bg-white rounded text-violet-700 disabled:bg-violet-300"
       >
         Share with selected ({{ selectedContacts.length }})
       </button>
