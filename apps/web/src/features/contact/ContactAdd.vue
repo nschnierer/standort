@@ -1,5 +1,5 @@
 <script lang="ts">
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import { mapStores } from "pinia";
 import { BrowserQRCodeReader, IScannerControls } from "@zxing/browser";
 import { XMarkIcon, ExclamationCircleIcon } from "@heroicons/vue/24/solid";
@@ -9,22 +9,18 @@ export default {
   name: "ContactAdd",
   components: { XMarkIcon, ExclamationCircleIcon },
   data: (): {
-    loadingCamera: boolean;
-    error: "" | "ACCESS_DENIED";
+    state: "LOADING" | "READY" | "ERROR_ACCESS_DENIED";
   } => ({
-    loadingCamera: true,
-    error: "",
+    state: "LOADING",
   }),
   setup() {
     const videoRef = ref<HTMLVideoElement | null>(null);
-    const streamRef = ref<MediaStream | null>(null);
-    const codeReaderRef = ref(new BrowserQRCodeReader());
+    const codeReader = new BrowserQRCodeReader();
     const scannerControlsRef = ref<IScannerControls | null>(null);
 
     return {
       videoRef,
-      streamRef,
-      codeReaderRef,
+      codeReader,
       scannerControlsRef,
     };
   },
@@ -32,10 +28,12 @@ export default {
     ...mapStores(useContactsStore),
   },
   methods: {
-    startScanner: async function () {
-      this.loadingCamera = true;
-      this.error = "";
-
+    /**
+     * Access camera and call startScanner.
+     */
+    async startCamera() {
+      this.state = "LOADING";
+      console.log("this.videoRef", this.videoRef);
       // Request camera access
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -43,78 +41,55 @@ export default {
             facingMode: "environment",
           },
         });
-        this.streamRef = stream;
         // Show video stream in video element
         this.videoRef!.srcObject = stream;
-        // Fix for Safari:
-        // Wrap the play() method in a Promise
-        await new Promise((resolve, reject) => {
-          this.videoRef!.onplaying = resolve;
-          this.videoRef!.onerror = reject;
-          this.videoRef!.play();
-        });
+        this.state = "READY";
+        this.startScanner();
       } catch (error) {
-        this.error = "ACCESS_DENIED";
-        this.loadingCamera = false;
         console.error(error);
-        return;
+        this.state = "ERROR_ACCESS_DENIED";
       }
-
-      this.scannerControlsRef = await this.codeReaderRef.decodeFromVideoDevice(
-        undefined,
-        this.videoRef!,
-        async (result, error, controls) => {
-          console.log("QR CODE RESPONSE", result, error);
-          if (result) {
-            const base64 = await result.getText();
-            console.log("QR CODE RESULT", base64);
-            const success = await this.encodeContactData(base64);
-            console.log("QR CODE SUCCESS", success);
+    },
+    /**
+     * Starts the scanner to detect QR codes.
+     */
+    async startScanner() {
+      try {
+        this.scannerControlsRef = await this.codeReader.decodeFromVideoElement(
+          this.videoRef!,
+          async (result) => {
+            if (!result) {
+              return;
+            }
+            const success = await this.contactsStore.createContactFromShareData(
+              result.getText()
+            );
             if (success) {
-              this.$router.replace("/contacts");
+              this.stopCameraAndScanner();
+              this.$router.push("/contacts");
             }
           }
-        }
-      );
-
-      this.loadingCamera = false;
-    },
-    encodeContactData: async function (base64: string) {
-      let json:
-        | (JsonWebKey & {
-            username: string;
-          })
-        | null = null;
-      try {
-        const jsonRaw = atob(base64);
-        console.log("jsonRaw", jsonRaw);
-        json = JSON.parse(jsonRaw);
+        );
       } catch (error) {
-        console.error(error);
+        console.error("Unable to scan for QR codes", error);
       }
-
-      if (!json) {
-        console.error("Invalid QR with empty JSON");
-        return false;
-      }
-      const { username, ...publicKey } = json;
-
-      await this.contactsStore.createContact({
-        username,
-        publicKey,
+    },
+    /**
+     * Stops camera and scanner.
+     */
+    stopCameraAndScanner() {
+      this.scannerControlsRef?.stop();
+      const stream = this.videoRef?.srcObject as MediaStream | undefined;
+      stream?.getTracks().forEach((track) => {
+        track.stop();
       });
-      return true;
     },
   },
   mounted: function () {
-    this.startScanner();
+    this.startCamera();
   },
   unmounted: function () {
-    // Clean up
-    this.scannerControlsRef?.stop();
-    this.streamRef?.getTracks().forEach((track) => {
-      track.stop();
-    });
+    this.stopCameraAndScanner();
   },
 };
 </script>
@@ -130,13 +105,12 @@ export default {
   <div class="flex w-full h-full items-center justify-center bg-black">
     <div
       class="fixed flex flex-col space-y-3 items-center"
-      v-if="loadingCamera && !error"
+      v-if="state === 'LOADING'"
     >
       <LoadingCircle class="w-8 h-8" />
       <p class="text-white opacity-50">Opening camera...</p>
     </div>
     <video
-      v-if="!error"
       id="contact-add-camera"
       ref="videoRef"
       autoplay
@@ -144,10 +118,13 @@ export default {
       muted
       class="object-contain object-position w-full h-full"
     />
-    <div v-if="error" class="p-4 w-full flex flex-col space-y-3 items-center">
+    <div
+      v-if="state.startsWith('ERROR_')"
+      class="p-4 w-full flex flex-col space-y-3 items-center"
+    >
       <ExclamationCircleIcon class="h-12 w-12 text-red-500" />
       <div class="text-white text-center">
-        <template v-if="error === 'ACCESS_DENIED'">
+        <template v-if="state === 'ERROR_ACCESS_DENIED'">
           <p>Please allow access to the camera in your browser settings.</p>
         </template>
       </div>

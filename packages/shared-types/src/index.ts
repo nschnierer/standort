@@ -3,3 +3,4 @@
 export * from "./socket.js";
 export * from "./geoJSON.js";
 export * from "./session.js";
+export * from "./contact.js";

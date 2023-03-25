@@ -113,7 +113,7 @@ export default {
             </p>
           </div>
           <QRCodeImage
-            :data="JSON.stringify(identityStore.qrCodeData)"
+            :data="JSON.stringify(identityStore.shareData)"
             class="border rounded-md shadow-lg border-violet-700"
             colorDark="#4c1d95"
             colorLight="#8b5cf6"

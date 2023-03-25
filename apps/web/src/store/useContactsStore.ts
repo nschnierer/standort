@@ -1,5 +1,5 @@
-import { reactive, onMounted } from "vue";
 import { defineStore } from "pinia";
+import { ContactShareZod } from "shared-types";
 import { useIdentityStore } from "~/store/useIdentityStore";
 import {
   importPublicKey,
@@ -49,6 +49,47 @@ export const useContactsStore = defineStore("contacts", {
       this.$patch((state) => {
         state.contacts.push({ ...contact, fingerprint, addedAt: new Date() });
       });
+    },
+
+    /**
+     * Creates a contact from the input which could be a URL or a Base64 string.
+     * This object is described in `ContactShare` type.
+     * @param base64 Base64 encoded JSON string
+     */
+    async createContactFromShareData(input: string) {
+      let base64 = "";
+
+      try {
+        // Maybe the input is a URL
+        // This allows the user to scan the QR code with other apps.
+        const url = new URL(input);
+        base64 = url.searchParams.get("s") ?? "";
+      } catch (error) {
+        // Not a URL, the input is the base64 string
+        base64 = input;
+      }
+
+      let json: JSON;
+      try {
+        const jsonRaw = atob(base64);
+        json = JSON.parse(jsonRaw);
+      } catch (error) {
+        console.error("Unable to parse share object", error);
+        return false;
+      }
+
+      const contact = ContactShareZod.safeParse(json);
+      if (!contact.success) {
+        console.error("Unable to safe parse share object", contact.error);
+        return false;
+      }
+
+      const { u: username, ...publicKey } = contact.data;
+      await this.createContact({
+        username,
+        publicKey,
+      });
+      return true;
     },
 
     /**
