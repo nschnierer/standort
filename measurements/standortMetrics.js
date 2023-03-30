@@ -1,13 +1,8 @@
 const fs = require("fs/promises");
 const puppeteer = require("puppeteer");
-const jsdom = require("jsdom");
 
-const BASE_URL = process.env.BASE_URL ?? "https://standort.live";
-const CLIENTS_NUMBER = Number.parseInt(process.env.CLIENTS_NUMBER, 10) || 1;
-
-const ROOT_PATH = `${process.cwd()}/measurements`;
-const OUTPUT_PATH = `${ROOT_PATH}/output`;
 const BASE_LAT_LNG = [51.9, 7.5];
+const LOG_PREFIX = "[Standort Metrics]";
 
 /**
  * Randomizes the latitude and longitude values
@@ -28,7 +23,9 @@ function randomizeLatLng(latLng, decimalPlaces = 1) {
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 class StandortClient {
-  constructor({ username }) {
+  constructor({ url, username, outputPath }) {
+    this.url = url;
+    this.outputPath = outputPath;
     this.username = username;
     this.browser = null;
     this.page = null;
@@ -54,32 +51,27 @@ class StandortClient {
 
   async writeMetrics(filename) {
     clearInterval(this.metricsCollectInterval);
-    // save to file
     await fs.writeFile(
-      `${OUTPUT_PATH}/${filename}.json`,
-      JSON.stringify(this.metrics)
-    );
-
-    await fs.writeFile(
-      `${OUTPUT_PATH}/${filename}.js`,
+      `${this.outputPath}/${filename}.js`,
       `var metrics = ${JSON.stringify(this.metrics)}`
     );
 
-    console.log(`Stopped collecting metrics`);
+    console.log(LOG_PREFIX, `Stopped collecting metrics`);
     this.metrics = [];
   }
 
   async setGeolocationWithRandomness() {
     const [latitude, longitude] = randomizeLatLng(this.baseLatLng, 2);
-    await this.page.setGeolocation({ latitude, longitude });
+    await this.page.setGeolocation({ latitude, longitude, accuracy: 10 });
   }
 
   async startMockingGeolocation(delay = 1000) {
     clearInterval(this.geoLocationInterval);
     this.setGeolocationWithRandomness();
-    this.geoLocationInterval = setInterval(async () => {
-      this.setGeolocationWithRandomness();
-    }, delay);
+    this.geoLocationInterval = setInterval(
+      this.setGeolocationWithRandomness.bind(this),
+      delay
+    );
   }
 
   async register() {
@@ -90,9 +82,16 @@ class StandortClient {
 
     // Grants permission for changing geolocation
     const context = this.browser.defaultBrowserContext();
-    await context.overridePermissions(BASE_URL, ["geolocation"]);
+    await context.overridePermissions(this.url, ["geolocation"]);
 
-    await this.page.goto(BASE_URL, { waitUntil: "networkidle0" });
+    this.page.on("console", (msg) => {
+      const text = msg.text();
+      if (text.includes("watchPositionSuccess")) {
+        console.log(LOG_PREFIX, "BROWSER LOGS", text);
+      }
+    });
+
+    await this.page.goto(this.url, { waitUntil: "networkidle0" });
 
     // Click the button with text "Get started"
     const getStartedLink = await this.page.$x(
@@ -135,7 +134,7 @@ class StandortClient {
       return element.getAttribute("data-value");
     }, "//img[@alt='QR-Code']");
 
-    console.log("Registered user with name:", this.username);
+    console.log(LOG_PREFIX, "Registered user with name:", this.username);
   }
 
   async addContact(username, foreignShareData) {
@@ -143,17 +142,17 @@ class StandortClient {
       throw new Error("User is not registered");
     }
 
-    const url = `${BASE_URL}/#/c/${foreignShareData}`;
+    const url = `${this.url}#/c/${foreignShareData}`;
     await this.page.goto(url, { waitUntil: "networkidle0" });
     await this.page.waitForXPath(`//div[contains(text(), '${username}')]`);
     // Go back to main page because mounted will not be called again,
     // if the same page is visited again.
-    await this.page.goto(BASE_URL, { waitUntil: "networkidle0" });
+    await this.page.goto(this.url, { waitUntil: "networkidle0" });
     await this.page.waitForXPath("//a[@aria-label='Identity']");
   }
 
   async shareLocationWith(username) {
-    await this.page.goto(`${BASE_URL}/#/contacts`, {
+    await this.page.goto(`${this.url}#/contacts`, {
       waitUntil: "networkidle0",
     });
 
@@ -170,7 +169,7 @@ class StandortClient {
 
   async takeScreenshot(filename, delay = 0) {
     await timeout(delay);
-    await this.page.screenshot({ path: `${OUTPUT_PATH}/${filename}.png` });
+    await this.page.screenshot({ path: `${this.outputPath}/${filename}.png` });
   }
 
   async close() {
@@ -181,28 +180,28 @@ class StandortClient {
   }
 }
 
-const startSimulation = async () => {
-  if (CLIENTS_NUMBER > 100) {
-    console.error("ERROR: 'CLIENTS_NUMBER' cannot be greater than 100");
-    process.exit(1);
+const runStandortMetrics = async ({ url, clientsNumber = 8, outputPath }) => {
+  if (clientsNumber > 100) {
+    console.error(LOG_PREFIX, "Clients number cannot be greater than 100");
+    return;
   }
 
   const clients = [];
 
-  console.log(`Create and register ${CLIENTS_NUMBER} clients`);
+  console.log(LOG_PREFIX, `Create and register ${clientsNumber} clients...`);
 
-  for (let i = 0; i < CLIENTS_NUMBER; i++) {
+  for (let i = 0; i < clientsNumber; i++) {
     const username = `User${i.toString().padStart(3, "0")}`;
-    clients.push(new StandortClient({ username }));
+    clients.push(new StandortClient({ url, outputPath, username }));
   }
   await Promise.all(clients.map((client) => client.register()));
 
-  console.log(`Successfully registered ${CLIENTS_NUMBER} clients`);
+  console.log(LOG_PREFIX, `Successfully registered ${clientsNumber} clients`);
 
-  console.log(`Create and register main client`);
-  const mainClient = new StandortClient({ username: "Main" });
+  console.log(LOG_PREFIX, `Create and register main client`);
+  const mainClient = new StandortClient({ url, outputPath, username: "Main" });
   await mainClient.register();
-  console.log(`Successfully registered main client`);
+  console.log(LOG_PREFIX, `Successfully registered main client`);
 
   // Add all clients to main client
   let mainContactCounter = 0;
@@ -211,6 +210,7 @@ const startSimulation = async () => {
     await mainClient.addContact(client.username, client.shareData);
     mainContactCounter += 1;
     console.log(
+      LOG_PREFIX,
       `Added ${client.username} to main client (${mainContactCounter}/${clients.length})`
     );
   }
@@ -221,55 +221,40 @@ const startSimulation = async () => {
     )
   );
 
-  await mainClient.takeScreenshot("screen-1");
-
   await timeout(2000);
-
-  // Start mocking geolocation for all clients
-  await Promise.all([
-    ...clients.map((client) => client.startMockingGeolocation()),
-    mainClient.startMockingGeolocation(),
-  ]);
 
   // Collect metrics when no location is shared
   await mainClient.collectMetrics();
+  await mainClient.startMockingGeolocation();
 
   // Start sharing location with clients step by step
+  let count = 1;
   for (const client of clients) {
     await mainClient.shareLocationWith(client.username);
     await client.shareLocationWith(mainClient.username);
+    await client.startMockingGeolocation();
     console.log(
-      `Start sharing location with ${client.username} in both directions`
+      LOG_PREFIX,
+      `Start sharing location with ${client.username} in both directions (${count}/${clients.length})`
     );
     await timeout(1000);
     await mainClient.collectMetrics();
-    await timeout(1000);
+    await timeout(2000);
+    await client.takeScreenshot(`standort-${count}-client`);
+    await mainClient.takeScreenshot(`standort-${count}-main`);
+    count++;
   }
 
-  await mainClient.writeMetrics("metrics");
+  await mainClient.writeMetrics("standortMetrics");
 
-  await mainClient.takeScreenshot("screen-2");
-
-  console.log("Close all clients");
+  await mainClient.takeScreenshot("standort-metrics-end");
 
   await Promise.all([
     ...clients.map((client) => client.close()),
     mainClient.close(),
   ]);
+
+  console.log(LOG_PREFIX, "Done");
 };
 
-const cleanAndCreateOutputDir = async () => {
-  try {
-    await fs.rm(OUTPUT_PATH, { recursive: true });
-  } catch (error) {
-    // ignore
-  }
-  await fs.mkdir(OUTPUT_PATH);
-};
-
-(async () => {
-  await cleanAndCreateOutputDir();
-  await startSimulation();
-
-  process.exit(0);
-})();
+module.exports = { runStandortMetrics };

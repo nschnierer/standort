@@ -66,6 +66,10 @@ export default {
     ) {
       this.$router.push("/intro");
     }
+
+    this.$nextTick(() => {
+      window.dispatchEvent(new Event("vue-render-complete"));
+    });
   },
 };
 </script>
