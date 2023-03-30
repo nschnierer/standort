@@ -3,6 +3,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const { runLCPMetrics } = require("./lcpMetrics.js");
 const { runStandortMetrics } = require("./standortMetrics.js");
+const { runDocsMetrics } = require("./docsMetrics.js");
 
 const options = yargs
   .option("lcp-url", {
@@ -19,6 +20,15 @@ const options = yargs
     type: "string",
   })
   .option("standort-clients-number", {
+    description: "The number of clients to simulate",
+    type: "number",
+    default: 8,
+  })
+  .option("docs-url", {
+    description: "The URL to measure the performance of Google Docs",
+    type: "string",
+  })
+  .option("docs-clients-number", {
     description: "The number of clients to simulate",
     type: "number",
     default: 8,
@@ -51,6 +61,15 @@ const cleanAndCreateOutputDir = async (dir) => {
     await runStandortMetrics({
       url: url.toString(),
       clientsNumber: options["standort-clients-number"],
+      outputPath,
+    });
+  }
+
+  if (options["docs-url"]) {
+    const url = new URL(options["docs-url"]);
+    await runDocsMetrics({
+      url: url.toString(),
+      clientsNumber: options["docs-clients-number"],
       outputPath,
     });
   }

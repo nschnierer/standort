@@ -1,16 +1,14 @@
 const fs = require("fs/promises");
 const puppeteer = require("puppeteer");
-const jsdom = require("jsdom");
 
-const BASE_URL = process.env.BASE_URL ?? "";
-const CLIENTS_NUMBER = Number.parseInt(process.env.CLIENTS_NUMBER, 10) || 1;
-const ROOT_PATH = `${process.cwd()}/measurements`;
-const OUTPUT_PATH = `${ROOT_PATH}/output-docs`;
+const LOG_PREFIX = "[Docs Metrics]";
 
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 class GoogleDocsClient {
-  constructor() {
+  constructor({ url, outputPath }) {
+    this.url = url;
+    this.outputPath = outputPath;
     this.browser = null;
     this.page = null;
 
@@ -31,16 +29,11 @@ class GoogleDocsClient {
     clearInterval(this.metricsCollectInterval);
     // save to file
     await fs.writeFile(
-      `${OUTPUT_PATH}/${filename}.json`,
-      JSON.stringify(this.metrics)
+      `${this.outputPath}/${filename}.js`,
+      `var docsMetrics = ${JSON.stringify(this.metrics)}`
     );
 
-    await fs.writeFile(
-      `${OUTPUT_PATH}/${filename}.js`,
-      `var metrics = ${JSON.stringify(this.metrics)}`
-    );
-
-    console.log(`Stopped collecting metrics`);
+    console.log(LOG_PREFIX, `Stopped collecting metrics`);
     this.metrics = [];
   }
 
@@ -53,7 +46,7 @@ class GoogleDocsClient {
 
     await this.page.setViewport({ width: 1280, height: 720 });
 
-    await this.page.goto(BASE_URL);
+    await this.page.goto(this.url);
   }
 
   async clearDocument() {
@@ -82,7 +75,7 @@ class GoogleDocsClient {
 
   async takeScreenshot(filename, delay = 0) {
     await timeout(delay);
-    await this.page.screenshot({ path: `${OUTPUT_PATH}/${filename}.png` });
+    await this.page.screenshot({ path: `${this.outputPath}/${filename}.png` });
   }
 
   async close() {
@@ -93,23 +86,21 @@ class GoogleDocsClient {
   }
 }
 
-const startSimulation = async () => {
-  if (CLIENTS_NUMBER > 100) {
-    console.error("ERROR: 'CLIENTS_NUMBER' cannot be greater than 100");
+const runDocsMetrics = async ({ url, clientsNumber = 3, outputPath }) => {
+  if (clientsNumber > 100) {
+    console.error(LOG_PREFIX, "Clients number cannot be greater than 100");
     process.exit(1);
   }
 
   const clients = [];
 
-  for (let i = 0; i < CLIENTS_NUMBER; i++) {
-    clients.push(new GoogleDocsClient());
+  for (let i = 0; i < clientsNumber; i++) {
+    clients.push(new GoogleDocsClient({ url, outputPath }));
   }
 
-  const mainClient = new GoogleDocsClient();
+  const mainClient = new GoogleDocsClient({ url, outputPath });
   await mainClient.openDocument();
   await mainClient.clearDocument();
-
-  await mainClient.takeScreenshot("screen-1");
 
   // Collect metrics when no location is shared
   await mainClient.collectMetrics();
@@ -118,6 +109,10 @@ const startSimulation = async () => {
 
   // Start sharing location with clients step by step
   for (const client of clients) {
+    console.log(
+      LOG_PREFIX,
+      `Client opens the document (${activeClients.length + 1}/${clientsNumber})`
+    );
     await client.openDocument();
     activeClients.push(client);
 
@@ -131,9 +126,9 @@ const startSimulation = async () => {
     await timeout(1000);
   }
 
-  await mainClient.writeMetrics("metrics");
+  await mainClient.writeMetrics("docs-import");
 
-  await mainClient.takeScreenshot("screen-2");
+  await mainClient.takeScreenshot("docs-end");
 
   await mainClient.clearDocument();
 
@@ -141,20 +136,7 @@ const startSimulation = async () => {
     ...clients.map((client) => client.close()),
     mainClient.close(),
   ]);
+  console.log(LOG_PREFIX, "Done");
 };
 
-const cleanAndCreateOutputDir = async () => {
-  try {
-    await fs.rm(OUTPUT_PATH, { recursive: true });
-  } catch (error) {
-    // ignore
-  }
-  await fs.mkdir(OUTPUT_PATH);
-};
-
-(async () => {
-  await cleanAndCreateOutputDir();
-  await startSimulation();
-
-  process.exit(0);
-})();
+module.exports = { runDocsMetrics };

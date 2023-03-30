@@ -126,7 +126,7 @@ const runLCPMetrics = async ({ url, iterations = 3, outputPath }) => {
 
   console.log(LOG_PREFIX, "Save metrics to file");
   await fs.writeFile(
-    path.join(outputPath, "lcpMetrics.js"),
+    path.join(outputPath, "lcp-import.js"),
     `var lcpMetrics = ${JSON.stringify(results)};`
   );
   console.log(LOG_PREFIX, "Done");

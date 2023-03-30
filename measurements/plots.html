@@ -13,72 +13,20 @@
         height: 300px;
       }
     </style>
-    <!--<script src="./output/metrics.js"></script> -->
-    <script src="./output-docs/metrics.js"></script>
+    <script src="./output/lcp-import.js"></script>
+    <script src="./output/docs-import.js"></script>
+    <script src="./output/standort-import.js"></script>
     <script
       src="https://cdn.plot.ly/plotly-2.20.0.min.js"
       charset="utf-8"
     ></script>
   </head>
   <body>
-    <div id="chart"></div>
+    <div id="chart-standort"></div>
+    <div id="chart-docs"></div>
     <script>
-      const createChart = async ({ elementId, title, x, y }) => {
-        const layout = {
-          title,
-          xaxis: { title: "Sessions" },
-          yaxis: {},
-        };
-
-        const config = {
-          staticPlot: true,
-          displayModeBar: true,
-        };
-
-        const trace = {
-          x,
-          y,
-          mode: "lines",
-          name: title,
-        };
-
-        const element = document.getElementById(elementId);
-        await Plotly.newPlot(element, [trace], layout, config);
-      };
-
-      (async () => {
+      const renderMetricsChart = async (metrics, id) => {
         const x = metrics.map((metric) => metric.count);
-
-        /*
-          await createChart({
-            elementId: "chart-nodes",
-            title: "Nodes",
-            x,
-            y: metrics.map((metric) => metric.Nodes),
-          });
-
-          await createChart({
-            elementId: "chart-task-duration",
-            title: "Task Duration",
-            x,
-            y: metrics.map((metric) => metric.TaskDuration),
-          });
-
-          await createChart({
-            elementId: "chart-js-heap",
-            title: "Heap Used Size (MB)",
-            x,
-            y: metrics.map((metric) => metric.JSHeapUsedSize / 1024 / 1024),
-            // y: metrics.map((metric) => (metric.JSHeapUsedSize / metric.JSHeapTotalSize) * 100,
-          });
-
-          await createChart({
-            elementId: "chart-event-listeners",
-            title: "Event Listeners",
-            x,
-            y: metrics.map((metric) => metric.LayoutDuration),
-          });
-          */
 
         var trace0 = {
           x,
@@ -154,8 +102,17 @@
           displayModeBar: true,
         };
 
-        const element = document.getElementById("chart");
+        const element = document.getElementById(id);
         await Plotly.newPlot(element, [trace0, trace1, trace2], layout, config);
+      };
+
+      (async () => {
+        if (standortMetrics) {
+          await renderMetricsChart(standortMetrics, "chart-standort");
+        }
+        if (docsMetrics) {
+          await renderMetricsChart(docsMetrics, "chart-docs");
+        }
       })();
     </script>
   </body>

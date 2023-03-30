@@ -53,7 +53,7 @@ class StandortClient {
     clearInterval(this.metricsCollectInterval);
     await fs.writeFile(
       `${this.outputPath}/${filename}.js`,
-      `var metrics = ${JSON.stringify(this.metrics)}`
+      `var standortMetrics = ${JSON.stringify(this.metrics)}`
     );
 
     console.log(LOG_PREFIX, `Stopped collecting metrics`);
@@ -245,7 +245,7 @@ const runStandortMetrics = async ({ url, clientsNumber = 8, outputPath }) => {
     count++;
   }
 
-  await mainClient.writeMetrics("standortMetrics");
+  await mainClient.writeMetrics("standort-import");
 
   await mainClient.takeScreenshot("standort-metrics-end");
 
