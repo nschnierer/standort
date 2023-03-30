@@ -13,21 +13,15 @@
         height: 300px;
       }
     </style>
-    <script src="./output/metrics.js"></script>
+    <!--<script src="./output/metrics.js"></script> -->
+    <script src="./output-docs/metrics.js"></script>
     <script
       src="https://cdn.plot.ly/plotly-2.20.0.min.js"
       charset="utf-8"
     ></script>
   </head>
   <body>
-    <div style="display: flex">
-      <div id="chart-nodes" class="chart"></div>
-      <div id="chart-task-duration" class="chart"></div>
-    </div>
-    <div style="display: flex">
-      <div id="chart-js-heap" class="chart"></div>
-      <div id="chart-event-listeners" class="chart"></div>
-    </div>
+    <div id="chart"></div>
     <script>
       const createChart = async ({ elementId, title, x, y }) => {
         const layout = {
@@ -55,34 +49,113 @@
       (async () => {
         const x = metrics.map((metric) => metric.count);
 
-        await createChart({
-          elementId: "chart-nodes",
-          title: "Nodes",
-          x,
-          y: metrics.map((metric) => metric.Nodes),
-        });
+        /*
+          await createChart({
+            elementId: "chart-nodes",
+            title: "Nodes",
+            x,
+            y: metrics.map((metric) => metric.Nodes),
+          });
 
-        await createChart({
-          elementId: "chart-task-duration",
-          title: "Task Duration",
-          x,
-          y: metrics.map((metric) => metric.TaskDuration),
-        });
+          await createChart({
+            elementId: "chart-task-duration",
+            title: "Task Duration",
+            x,
+            y: metrics.map((metric) => metric.TaskDuration),
+          });
 
-        await createChart({
-          elementId: "chart-js-heap",
-          title: "Heap Used Size (MB)",
-          x,
-          y: metrics.map((metric) => metric.JSHeapUsedSize / 1024 / 1024),
-          // y: metrics.map((metric) => (metric.JSHeapUsedSize / metric.JSHeapTotalSize) * 100,
-        });
+          await createChart({
+            elementId: "chart-js-heap",
+            title: "Heap Used Size (MB)",
+            x,
+            y: metrics.map((metric) => metric.JSHeapUsedSize / 1024 / 1024),
+            // y: metrics.map((metric) => (metric.JSHeapUsedSize / metric.JSHeapTotalSize) * 100,
+          });
 
-        await createChart({
-          elementId: "chart-event-listeners",
-          title: "Event Listeners",
+          await createChart({
+            elementId: "chart-event-listeners",
+            title: "Event Listeners",
+            x,
+            y: metrics.map((metric) => metric.LayoutDuration),
+          });
+          */
+
+        var trace0 = {
           x,
           y: metrics.map((metric) => metric.LayoutDuration),
-        });
+        };
+
+        var trace1 = {
+          x,
+          y: metrics.map((metric) => metric.Nodes),
+          xaxis: "x2",
+          yaxis: "y2",
+        };
+
+        var trace2 = {
+          x,
+          y: metrics.map((metric) => metric.JSHeapUsedSize / 1024 / 1024),
+          xaxis: "x3",
+          yaxis: "y3",
+        };
+
+        var data = [trace0, trace1, trace2];
+
+        const fontSettings = {
+          titlefont: {
+            size: 20,
+          },
+          tickfont: {
+            size: 16,
+          },
+        };
+
+        var layout = {
+          width: 1200,
+          height: 500,
+          xaxis: {
+            domain: [0, 0.26],
+            title: "Sessions",
+            ...fontSettings,
+          },
+          xaxis2: {
+            domain: [0.33, 0.61],
+            title: "Sessions",
+            ...fontSettings,
+          },
+          xaxis3: {
+            domain: [0.68, 1.0],
+            title: "Sessions",
+            ...fontSettings,
+          },
+          yaxis: {
+            domain: [0, 1.0],
+            anchor: "x",
+            title: "LayoutDuration",
+            ...fontSettings,
+          },
+          yaxis2: {
+            domain: [0, 1.0],
+            anchor: "x2",
+            title: "Nodes",
+            ...fontSettings,
+          },
+          yaxis3: {
+            domain: [0, 1.0],
+            anchor: "x3",
+            title: "Heap Used Size (MB)",
+            ...fontSettings,
+          },
+          showlegend: false,
+        };
+
+        const config = {
+          staticPlot: true,
+          displayModeBar: true,
+        };
+
+        const element = document.getElementById("chart");
+        await Plotly.newPlot(element, [trace0, trace1, trace2], layout, config);
       })();
     </script>
   </body>

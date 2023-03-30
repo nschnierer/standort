@@ -27,4 +27,4 @@ yarn-error.log*
 /playwright-report/
 /playwright/.cache/
 
-/measurements/output
+/measurements/output*
