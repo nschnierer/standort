@@ -19,7 +19,9 @@
     "@playwright/test": "^1.31.2",
     "dotenv-cli": "latest",
     "prettier": "latest",
-    "turbo": "latest"
+    "puppeteer": "^19.8.2",
+    "turbo": "latest",
+    "yargs": "^17.7.1"
   },
   "engines": {
     "node": ">=16.0.0"

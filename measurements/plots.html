@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Line Charts with Plotly.js</title>
+    <style type="text/css">
+      body {
+        font-family: "Open Sans", sans-serif;
+      }
+      .chart {
+        width: 300px;
+        height: 300px;
+      }
+    </style>
+    <script src="./output/lcp-import.js"></script>
+    <script src="./output/docs-import.js"></script>
+    <script src="./output/standort-import.js"></script>
+    <script
+      src="https://cdn.plot.ly/plotly-2.20.0.min.js"
+      charset="utf-8"
+    ></script>
+  </head>
+  <body>
+    <div id="chart-standort"></div>
+    <div id="chart-docs"></div>
+    <script>
+      const renderMetricsChart = async (metrics, id) => {
+        const x = metrics.map((metric) => metric.count);
+
+        var trace0 = {
+          x,
+          y: metrics.map((metric) => metric.LayoutDuration),
+        };
+
+        var trace1 = {
+          x,
+          y: metrics.map((metric) => metric.Nodes),
+          xaxis: "x2",
+          yaxis: "y2",
+        };
+
+        var trace2 = {
+          x,
+          y: metrics.map((metric) => metric.JSHeapUsedSize / 1024 / 1024),
+          xaxis: "x3",
+          yaxis: "y3",
+        };
+
+        var data = [trace0, trace1, trace2];
+
+        const fontSettings = {
+          titlefont: {
+            size: 20,
+          },
+          tickfont: {
+            size: 16,
+          },
+        };
+
+        var layout = {
+          width: 1200,
+          height: 500,
+          xaxis: {
+            domain: [0, 0.26],
+            title: "Sessions",
+            ...fontSettings,
+          },
+          xaxis2: {
+            domain: [0.33, 0.61],
+            title: "Sessions",
+            ...fontSettings,
+          },
+          xaxis3: {
+            domain: [0.68, 1.0],
+            title: "Sessions",
+            ...fontSettings,
+          },
+          yaxis: {
+            domain: [0, 1.0],
+            anchor: "x",
+            title: "LayoutDuration",
+            ...fontSettings,
+          },
+          yaxis2: {
+            domain: [0, 1.0],
+            anchor: "x2",
+            title: "Nodes",
+            ...fontSettings,
+          },
+          yaxis3: {
+            domain: [0, 1.0],
+            anchor: "x3",
+            title: "Heap Used Size (MB)",
+            ...fontSettings,
+          },
+          showlegend: false,
+        };
+
+        const config = {
+          staticPlot: true,
+          displayModeBar: true,
+        };
+
+        const element = document.getElementById(id);
+        await Plotly.newPlot(element, [trace0, trace1, trace2], layout, config);
+      };
+
+      (async () => {
+        if (standortMetrics) {
+          await renderMetricsChart(standortMetrics, "chart-standort");
+        }
+        if (docsMetrics) {
+          await renderMetricsChart(docsMetrics, "chart-docs");
+        }
+      })();
+    </script>
+  </body>
+</html>

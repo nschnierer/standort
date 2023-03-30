@@ -95,19 +95,6 @@ describe("useContactsStore", () => {
     );
   });
 
-  it("should create a contact from a valid URL string", async () => {
-    // Create a identity to share
-    const identityStore = useIdentityStore();
-    await identityStore.generateKeys();
-    identityStore.$patch({ username: "Alice" });
-
-    const contactsStore = useContactsStore();
-    const success = await contactsStore.createContactFromShareData(
-      `https://standort.live/?s=${identityStore.shareData}`
-    );
-    expect(success).toBeTruthy();
-  });
-
   it("should create a contact from a specify share object", async () => {
     // This test proofs, if the following structure
     // of the share data is still working.

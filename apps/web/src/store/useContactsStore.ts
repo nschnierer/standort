@@ -52,23 +52,11 @@ export const useContactsStore = defineStore("contacts", {
     },
 
     /**
-     * Creates a contact from the input which could be a URL or a Base64 string.
+     * Creates a contact from a Base64 string.
      * This object is described in `ContactShare` type.
      * @param base64 Base64 encoded JSON string
      */
-    async createContactFromShareData(input: string) {
-      let base64 = "";
-
-      try {
-        // Maybe the input is a URL
-        // This allows the user to scan the QR code with other apps.
-        const url = new URL(input);
-        base64 = url.searchParams.get("s") ?? "";
-      } catch (error) {
-        // Not a URL, the input is the base64 string
-        base64 = input;
-      }
-
+    async createContactFromShareData(base64: string) {
       let json: JSON;
       try {
         const jsonRaw = atob(base64);
