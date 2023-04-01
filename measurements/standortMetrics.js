@@ -23,7 +23,7 @@ function randomizeLatLng(latLng, decimalPlaces = 1) {
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 class StandortClient {
-  constructor({ url, username, outputPath }) {
+  constructor({ url, username, outputPath, screenshotEveryStep }) {
     this.url = url;
     this.outputPath = outputPath;
     this.username = username;
@@ -37,6 +37,20 @@ class StandortClient {
     this.metricsCollectInterval;
     this.metricsCollectDelay = 500;
     this.metrics = [];
+
+    this.screenshotEveryStep = screenshotEveryStep;
+    this.screenshotCounter = 0;
+  }
+
+  async takeScreenshotsEveryStep(delay) {
+    this.screenshotCounter += 1;
+    const paddedCounter = this.screenshotCounter.toString().padStart(2, "0");
+    if (this.screenshotEveryStep) {
+      await this.takeScreenshot(
+        `${this.screenshotEveryStep}-${paddedCounter}`,
+        delay
+      );
+    }
   }
 
   isRegistered() {
@@ -61,6 +75,13 @@ class StandortClient {
   }
 
   async setGeolocationWithRandomness() {
+    try {
+      const context = this.browser.defaultBrowserContext();
+      await context.overridePermissions(this.url, ["geolocation"]);
+    } catch (e) {
+      // Ignore error
+    }
+
     const [latitude, longitude] = randomizeLatLng(this.baseLatLng, 2);
     await this.page.setGeolocation({ latitude, longitude, accuracy: 10 });
   }
@@ -74,7 +95,7 @@ class StandortClient {
     );
   }
 
-  async register() {
+  async register(fullLogs = false) {
     this.browser = await puppeteer.launch({ headless: true, devtools: true });
     this.page = await this.browser.newPage();
 
@@ -84,14 +105,18 @@ class StandortClient {
     const context = this.browser.defaultBrowserContext();
     await context.overridePermissions(this.url, ["geolocation"]);
 
-    this.page.on("console", (msg) => {
-      const text = msg.text();
-      if (text.includes("watchPositionSuccess")) {
+    if (fullLogs) {
+      this.page.on("console", (msg) => {
+        const text = msg.text();
+        // if (text.includes("watchPosition")) {
         console.log(LOG_PREFIX, "BROWSER LOGS", text);
-      }
-    });
+        // }
+      });
+    }
 
     await this.page.goto(this.url, { waitUntil: "networkidle0" });
+
+    await this.takeScreenshotsEveryStep();
 
     // Click the button with text "Get started"
     const getStartedLink = await this.page.$x(
@@ -104,14 +129,21 @@ class StandortClient {
       "//label[contains(text(), 'Your name')]/following-sibling::div/input"
     );
     await nameInput[0].type(this.username);
-
     const nextButton = await this.page.$x("//button[contains(text(), 'Next')]");
+
+    await this.takeScreenshotsEveryStep(100);
+
     await nextButton[0].click();
+
+    await this.takeScreenshotsEveryStep();
 
     await this.page.waitForXPath("//button[contains(text(), 'Download')]");
     const downloadButton = await this.page.$x(
       "//button[contains(text(), 'Download')]"
     );
+
+    await this.takeScreenshotsEveryStep();
+
     await downloadButton[0].click();
 
     const finishButton = await this.page.$x(
@@ -121,6 +153,9 @@ class StandortClient {
 
     await this.page.waitForXPath("//a[@aria-label='Identity']");
     const identityLink = await this.page.$x("//a[@aria-label='Identity']");
+
+    await this.takeScreenshotsEveryStep();
+
     await identityLink[0].click();
 
     this.shareData = await this.page.evaluate((xpath) => {
@@ -133,6 +168,8 @@ class StandortClient {
       ).singleNodeValue;
       return element.getAttribute("data-value");
     }, "//img[@alt='QR-Code']");
+
+    await this.takeScreenshotsEveryStep();
 
     console.log(LOG_PREFIX, "Registered user with name:", this.username);
   }
@@ -152,19 +189,26 @@ class StandortClient {
   }
 
   async shareLocationWith(username) {
-    await this.page.goto(`${this.url}#/contacts`, {
-      waitUntil: "networkidle0",
-    });
+    const addContactButton = await this.page.$x(
+      "//a[@aria-label='Add contact']"
+    );
+    await addContactButton[0].click();
+
+    await this.takeScreenshotsEveryStep();
 
     const xPath = `//input[@type="checkbox" and @aria-label="Select ${username}"]`;
     await this.page.waitForXPath(xPath);
     const checkbox = await this.page.$x(xPath);
     await checkbox[0].click();
 
+    await this.takeScreenshotsEveryStep();
+
     const shareWithSelected = await this.page.$x(
       "//button[contains(text(), 'Share with selected')]"
     );
     await shareWithSelected[0].click();
+
+    await this.takeScreenshotsEveryStep(8000);
   }
 
   async takeScreenshot(filename, delay = 0) {
@@ -257,4 +301,4 @@ const runStandortMetrics = async ({ url, clientsNumber = 8, outputPath }) => {
   console.log(LOG_PREFIX, "Done");
 };
 
-module.exports = { runStandortMetrics };
+module.exports = { runStandortMetrics, StandortClient };

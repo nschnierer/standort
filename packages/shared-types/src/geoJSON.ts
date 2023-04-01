@@ -1,11 +1,13 @@
 import * as z from "zod";
 
 export const FeatureZod = z.object({
-  type: z.literal("Feature"),
-  properties: z.object({}),
+  type: z.string(),
+  properties: z.object({
+    createdAt: z.string(),
+  }),
   geometry: z.object({
-    coordinates: z.tuple([z.number(), z.number()]),
-    type: z.literal("Point"),
+    coordinates: z.array(z.number()),
+    type: z.string(),
   }),
 });
 

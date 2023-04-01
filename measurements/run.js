@@ -4,6 +4,7 @@ const path = require("path");
 const { runLCPMetrics } = require("./lcpMetrics.js");
 const { runStandortMetrics } = require("./standortMetrics.js");
 const { runDocsMetrics } = require("./docsMetrics.js");
+const { runStandortScreenshots } = require("./standortScreenshots.js");
 
 const options = yargs
   .option("lcp-url", {
@@ -32,6 +33,15 @@ const options = yargs
     description: "The number of clients to simulate",
     type: "number",
     default: 8,
+  })
+  .option("standort-screens-url", {
+    description: "The URL to take screenshots of the Standort app",
+    type: "string",
+  })
+  .option("standort-screens-clients-number", {
+    description: "The number of clients to simulate",
+    type: "number",
+    default: 2,
   }).argv;
 
 const cleanAndCreateOutputDir = async (dir) => {
@@ -70,6 +80,15 @@ const cleanAndCreateOutputDir = async (dir) => {
     await runDocsMetrics({
       url: url.toString(),
       clientsNumber: options["docs-clients-number"],
+      outputPath,
+    });
+  }
+
+  if (options["standort-screens-url"]) {
+    const url = new URL(options["standort-screens-url"]);
+    await runStandortScreenshots({
+      url: url.toString(),
+      clientsNumber: options["standort-screens-clients-number"],
       outputPath,
     });
   }

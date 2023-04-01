@@ -39,6 +39,21 @@ export const useContactsStore = defineStore("contacts", {
       }
       return contact.username ?? "Unknown";
     },
+    getNameInitials: (state) => (fingerprint: string) => {
+      const contact = state.contacts.find(
+        (contact) => contact.fingerprint === fingerprint
+      );
+      if (!contact || !contact.username) {
+        return "??";
+      }
+
+      const [first, last] = contact.username.split(" ");
+
+      if (first.length > 0 && last?.length > 0) {
+        return `${first.slice(0, 1)}${last.slice(0, 1)}`.toLocaleUpperCase();
+      }
+      return contact.username.slice(0, 2).toUpperCase();
+    },
   },
   actions: {
     /**

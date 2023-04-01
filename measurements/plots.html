@@ -9,13 +9,10 @@
         font-family: "Open Sans", sans-serif;
       }
       .chart {
-        width: 300px;
+        width: 700px;
         height: 300px;
       }
     </style>
-    <script src="./output/lcp-import.js"></script>
-    <script src="./output/docs-import.js"></script>
-    <script src="./output/standort-import.js"></script>
     <script
       src="https://cdn.plot.ly/plotly-2.20.0.min.js"
       charset="utf-8"
@@ -24,7 +21,33 @@
   <body>
     <div id="chart-standort"></div>
     <div id="chart-docs"></div>
+    <div id="chart-lcp" class="chart"></div>
     <script>
+      async function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          console.log(`Loading metrics: ${src}`);
+          script.src = src;
+          script.onload = () => {
+            console.log(`Loaded metrics: ${src}`);
+            resolve();
+          };
+          script.onerror = () => {
+            console.warn(`Unable to load metrics: ${src}`);
+          };
+          document.head.appendChild(script);
+        });
+      }
+
+      const fontSettings = {
+        titlefont: {
+          size: 20,
+        },
+        tickfont: {
+          size: 16,
+        },
+      };
+
       const renderMetricsChart = async (metrics, id) => {
         const x = metrics.map((metric) => metric.count);
 
@@ -48,15 +71,6 @@
         };
 
         var data = [trace0, trace1, trace2];
-
-        const fontSettings = {
-          titlefont: {
-            size: 20,
-          },
-          tickfont: {
-            size: 16,
-          },
-        };
 
         var layout = {
           width: 1200,
@@ -106,13 +120,63 @@
         await Plotly.newPlot(element, [trace0, trace1, trace2], layout, config);
       };
 
+      function calculateAverages(data) {
+        const networks = {};
+        data.forEach((item) => {
+          if (!networks[item.network]) {
+            networks[item.network] = { sum: 0, count: 0 };
+          }
+          networks[item.network].sum += item.lcpSeconds;
+          networks[item.network].count++;
+        });
+
+        return Object.entries(networks).map(([network, { sum, count }]) => ({
+          network,
+          averageLcpSeconds: sum / count,
+        }));
+      }
+
+      function createBarChart(data, id) {
+        const trace = {
+          x: data.map((item) => item.averageLcpSeconds),
+          y: data.map((item) => item.network),
+          type: "bar",
+          orientation: "h",
+        };
+
+        const layout = {
+          title:
+            "Average Largest Contentful Paint (LCP) Seconds by Mobile Network",
+          xaxis: { title: "LCP in Sekunden", ...fontSettings },
+          yaxis: { title: "Mobiles Internet", ...fontSettings },
+        };
+
+        const config = {
+          staticPlot: true,
+          displayModeBar: true,
+        };
+
+        Plotly.newPlot(id, [trace], layout, config);
+      }
+
       (async () => {
-        if (standortMetrics) {
+        const loadStandort = async () => {
+          await loadScript("./output/standort-import.js");
           await renderMetricsChart(standortMetrics, "chart-standort");
-        }
-        if (docsMetrics) {
+        };
+
+        const loadDocs = async () => {
+          await loadScript("./output/docs-import.js");
           await renderMetricsChart(docsMetrics, "chart-docs");
-        }
+        };
+
+        const loadLCP = async () => {
+          await loadScript("./output/lcp-import.js");
+          createBarChart(calculateAverages(lcpMetrics), "chart-lcp");
+        };
+
+        // Gracefully load and handle errors
+        await Promise.all([loadStandort(), loadDocs(), loadLCP()]);
       })();
     </script>
   </body>

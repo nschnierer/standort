@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ContactShare } from "shared-types";
+import { ContactShare, Feature } from "shared-types";
 import {
   generateKeyPair,
   exportKey,
@@ -20,6 +20,8 @@ export type Identity = {
   updatedAt: Date;
   /** Initialisation of the store */
   createdAt: Date;
+  /** Last position  */
+  lastPosition?: Feature;
 };
 
 export const useIdentityStore = defineStore("identity", {
@@ -30,6 +32,7 @@ export const useIdentityStore = defineStore("identity", {
     publicKey: undefined,
     updatedAt: new Date(),
     createdAt: new Date(),
+    lastPosition: undefined,
   }),
   getters: {
     /**
@@ -82,6 +85,14 @@ export const useIdentityStore = defineStore("identity", {
       };
 
       this.$patch(data);
+    },
+
+    /**
+     * Set last position.
+     * @param position GeoJSON feature
+     */
+    setLastPosition(position: Feature) {
+      this.$patch({ lastPosition: position });
     },
   },
 });

@@ -23,6 +23,13 @@ export interface Session {
   lastPosition: Feature | null;
 }
 
+export interface SessionPerContact {
+  [contactFingerprint: string]: {
+    incoming?: Session;
+    outgoing?: Session;
+  };
+}
+
 const isActiveSession = (session: Session, current = new Date()) => {
   return isBefore(current, new Date(session.end));
 };
@@ -38,12 +45,7 @@ export const useSessionsStore = defineStore("sessions", {
     activeSessionPerContact() {
       const myFingerprint = useIdentityStore().fingerprint;
 
-      const contactMap: {
-        [contactFingerprint: string]: {
-          incoming?: Session;
-          outgoing?: Session;
-        };
-      } = {};
+      const contactMap: SessionPerContact = {};
 
       for (const session of this.activeSessions) {
         if (myFingerprint === session.from) {
@@ -125,6 +127,17 @@ export const useSessionHandlerStore = defineStore("sessionHandler", () => {
     webRTCHandler.sendOffer(to);
   };
 
+  const stopSession = (to: string) => {
+    const session = sessionsStore.sessions.find((session) => session.to === to);
+    if (!session) {
+      return;
+    }
+    sessionsStore.upsertSession({
+      ...session,
+      end: new Date().toISOString(),
+    });
+  };
+
   const sendToSessions = (data: Feature) => {
     const from = webRTCHandler.getMyCurrentFingerprint();
     sessionsStore.sessions.forEach((session) => {
@@ -155,6 +168,7 @@ export const useSessionHandlerStore = defineStore("sessionHandler", () => {
   return {
     start,
     startSession,
+    stopSession,
     sendToSessions,
     stopSessions,
   };

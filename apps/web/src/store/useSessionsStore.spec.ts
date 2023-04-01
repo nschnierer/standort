@@ -5,6 +5,7 @@ import subMinutes from "date-fns/subMinutes";
 import { Feature } from "shared-types";
 import { WebRTCHandler } from "../utils/WebRTCHandler";
 import { useSessionsStore, useSessionHandlerStore } from "./useSessionsStore";
+import { useIdentityStore } from "./useIdentityStore";
 
 vi.mock("../utils/WebRTCHandler");
 
@@ -74,7 +75,7 @@ describe("useSessionsStore", () => {
 
     const data: Feature = {
       type: "Feature",
-      properties: {},
+      properties: { createdAt: new Date().toISOString() },
       geometry: { type: "Point", coordinates: [1, 2] },
     };
     sessionHandlerStore.sendToSessions(data);
@@ -91,5 +92,47 @@ describe("useSessionsStore", () => {
     sessionHandler.startSession({ to: "1242", end: new Date() });
     sessionHandler.stopSessions();
     expect(WebRTCHandler.prototype.disconnectPeers).toHaveBeenCalledTimes(1);
+  });
+
+  it("should get active sessions per contact", async () => {
+    // create identity store
+    const identityStore = useIdentityStore();
+    await identityStore.generateKeys();
+    // Update the username
+    identityStore.$patch({ username: "Alice" });
+
+    // create session store
+    const sessionsStore = useSessionsStore();
+
+    const activeEnd = addMinutes(new Date(), 1);
+
+    const fromFingerprint = "11111111";
+    const incoming = {
+      from: fromFingerprint,
+      to: identityStore.fingerprint,
+      start: new Date().toISOString(),
+      end: activeEnd.toISOString(),
+      lastPosition: {
+        type: "Feature",
+        properties: { createdAt: new Date().toISOString() },
+        geometry: { type: "Point", coordinates: [50.3, 8.4] },
+      },
+    };
+
+    const outgoing = {
+      ...incoming,
+      from: identityStore.fingerprint,
+      to: fromFingerprint,
+    };
+
+    sessionsStore.upsertSession(incoming);
+    sessionsStore.upsertSession(outgoing);
+
+    expect(sessionsStore.activeSessionPerContact).toEqual({
+      [fromFingerprint]: {
+        incoming,
+        outgoing,
+      },
+    });
   });
 });

@@ -2,34 +2,37 @@
 import { ref } from "vue";
 import L from "leaflet";
 import { mapStores } from "pinia";
-import { formatRelativeTimeDiff } from "~/utils/formatTime";
+import { Feature } from "shared-types";
+import { formatRelativeTime, formatRelativeTimeDiff } from "~/utils/formatTime";
 import {
   useSessionsStore,
   useSessionHandlerStore,
+  SessionPerContact,
 } from "~/store/useSessionsStore";
 import { useContactsStore } from "~/store/useContactsStore";
-import { UserCircleIcon, PlusIcon } from "@heroicons/vue/24/solid";
+import { useIdentityStore } from "~/store/useIdentityStore";
+import { UserCircleIcon, PlusIcon, XMarkIcon } from "@heroicons/vue/24/solid";
 
 export default {
   name: "Start",
-  components: { UserCircleIcon, PlusIcon },
-  data: (): {
-    refreshInterval: number;
-    refreshTimeoutMS: number;
-    map: null | L.Map;
-  } => ({
-    refreshInterval: 0,
-    refreshTimeoutMS: 1000 * 30, // 30 seconds
-    map: null,
-  }),
+  components: { UserCircleIcon, PlusIcon, XMarkIcon },
+  data() {
+    return {
+      refreshInterval: 0 as number,
+      refreshTimeoutMS: (1000 * 30) as number, // 30 seconds
+      map: null as L.Map | null,
+    };
+  },
   setup: () => {
     const mapRef = ref<HTMLDivElement | null>(null);
     return {
       mapRef,
+      formatRelativeTime,
       formatRelativeTimeDiff,
     };
   },
   computed: {
+    ...mapStores(useIdentityStore),
     ...mapStores(useSessionsStore),
     ...mapStores(useSessionHandlerStore),
     ...mapStores(useContactsStore),
@@ -45,48 +48,105 @@ export default {
         attribution:
           '<a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }).addTo(this.$data.map);
+
+      this.updateMarkers(this.sessionsStore.activeSessionPerContact);
+    },
+    cancelSession(fingerprint: string) {
+      const username = this.contactsStore.getContactUsername(fingerprint);
+      if (!username) {
+        return;
+      }
+      const ok = window.confirm(
+        `Do you really want to cancel the session with ${username}?`
+      );
+      if (ok) {
+        this.sessionHandlerStore.stopSession(fingerprint);
+      }
+    },
+    updateMarkers(
+      sessionPerContact: SessionPerContact,
+      myLastPosition?: Feature
+    ) {
+      const contactMarkers: {
+        initials: string;
+        time: string;
+        position: [number, number];
+      }[] = [];
+
+      // Get all contacts which have an active session
+      // and send their last position.
+      Object.entries(sessionPerContact).forEach(
+        ([fingerprint, { incoming }]) => {
+          if (incoming && incoming.lastPosition) {
+            const [lng, lat] = incoming.lastPosition.geometry.coordinates;
+            contactMarkers.push({
+              initials: this.contactsStore.getNameInitials(fingerprint),
+              time: formatRelativeTime(
+                new Date(incoming.lastPosition.properties.createdAt),
+                new Date()
+              ),
+              position: [lat, lng],
+            });
+          }
+        }
+      );
+
+      // Clear all markers before adding new ones
+      this.map!.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+          this.$data?.map?.removeLayer(layer);
+        }
+      });
+
+      let addedMarkers: L.Marker[] = [];
+
+      contactMarkers.forEach((contactMarker) => {
+        addedMarkers.push(
+          L.marker(contactMarker.position, {
+            icon: new L.DivIcon({
+              className: "contact-marker",
+              html: `<div class="marker"><div class="name">${
+                contactMarker.initials
+              }</div><div class="time">${contactMarker.time
+                .replace(" ago", "")
+                .replace("Just ", "")}</div></div>`,
+            }),
+          }).addTo(this.$data.map!)
+        );
+      });
+
+      if (myLastPosition) {
+        const [lng, lat] = myLastPosition.geometry.coordinates;
+        addedMarkers.push(
+          L.marker([lat, lng], {
+            icon: new L.DivIcon({
+              className: "me-marker",
+              html: `<div class="marker" title="You"><div class="circle"></div></div>`,
+            }),
+          }).addTo(this.$data.map!)
+        );
+      }
+
+      if (addedMarkers.length > 0) {
+        this.$data?.map?.fitBounds(
+          L.featureGroup(addedMarkers).getBounds().pad(0.5)
+        );
+      }
     },
   },
   watch: {
-    "sessionsStore.sessions": {
-      handler: function (sessions: typeof this.sessionsStore.sessions) {
-        if (!this.$data.map) {
-          return null;
-        }
-
-        // Clear all markers before adding new ones
-        this.$data.map.eachLayer((layer) => {
-          if (layer instanceof L.Marker) {
-            this.$data?.map?.removeLayer(layer);
-          }
-        });
-
-        let addedMarkers: L.Marker[] = [];
-
-        sessions.forEach((session) => {
-          if (!session.lastPosition) {
-            return;
-          }
-          const feature = session.lastPosition;
-          const [lng, lat] = feature.geometry.coordinates;
-
-          if (this.$data.map) {
-            addedMarkers.push(
-              L.marker([lat, lng], {
-                icon: new L.DivIcon({
-                  className: "contact-marker",
-                  html: `<div class="marker">NO</div>`,
-                }),
-              }).addTo(this.$data.map)
-            );
-          }
-        });
-
-        if (addedMarkers.length > 0) {
-          this.$data?.map?.fitBounds(
-            L.featureGroup(addedMarkers).getBounds().pad(0.5)
-          );
-        }
+    "sessionsStore.activeSessionPerContact": {
+      handler: function (sessionPerContact: SessionPerContact) {
+        this.updateMarkers(sessionPerContact, this.identityStore.lastPosition);
+      },
+      deep: true,
+    },
+    "identityStore.lastPosition": {
+      handler: function (lastPosition: Feature) {
+        this.updateMarkers(
+          this.sessionsStore.activeSessionPerContact,
+          lastPosition
+        );
       },
       deep: true,
     },
@@ -97,6 +157,10 @@ export default {
     // Update the list of active sessions every 30 seconds
     this.refreshInterval = window.setInterval(() => {
       this.$forceUpdate();
+      this.updateMarkers(
+        this.sessionsStore.activeSessionPerContact,
+        this.identityStore.lastPosition
+      );
     }, this.refreshTimeoutMS);
   },
   beforeUnmount() {
@@ -108,8 +172,24 @@ export default {
 <style>
 @import "leaflet/dist/leaflet.css";
 
+.me-marker .marker {
+  @apply w-8 h-8 rounded-full flex items-center justify-center bg-violet-500;
+}
+.me-marker .marker .circle {
+  @apply w-5 h-5 rounded-full bg-purple-300;
+}
+
 .contact-marker .marker {
-  @apply w-10 h-10 rounded-full flex items-center justify-center bg-violet-500 text-white text-base;
+  @apply w-10 h-10 rounded-full flex flex-col items-center justify-center bg-violet-500 text-white text-base;
+}
+
+.contact-marker .marker .name {
+  @apply text-sm leading-tight mt-1;
+}
+
+.contact-marker .marker .time {
+  @apply leading-tight -mt-0.5;
+  font-size: 10px;
 }
 
 @media screen(lg) {
@@ -141,6 +221,7 @@ export default {
       <div class="absolute z-10 bottom-2 right-2">
         <router-link
           to="/contacts"
+          aria-label="Add contact"
           class="flex justify-center items-center bg-violet-500 rounded-full p-1"
         >
           <PlusIcon class="h-10 w-10 text-white" />
@@ -168,25 +249,42 @@ export default {
           )"
           :key="contactFingerprint"
         >
-          <h2 class="text-md font-bold">
-            {{ contactsStore.getContactUsername(contactFingerprint) }}
-            <span>{{ contactFingerprint.slice(0, 8) }}</span>
-          </h2>
-          <div class="text-sm">
-            <p v-if="incoming" class="text-violet-600">
-              Shares locations for
-              {{ formatRelativeTimeDiff(new Date(), new Date(incoming.end)) }}
-            </p>
-            <p v-if="!incoming" class="text-gray-500">
-              Shares no locations with you
-            </p>
-            <p v-if="outgoing" class="text-violet-600">
-              You share locations for
-              {{ formatRelativeTimeDiff(new Date(), new Date(outgoing.end)) }}
-            </p>
-            <p v-if="!outgoing" class="text-gray-500">
-              You are not sharing locations
-            </p>
+          <div class="flex items-center">
+            <div class="flex-1">
+              <h2 class="text-md font-bold">
+                {{ contactsStore.getContactUsername(contactFingerprint) }}
+                <span>{{ contactFingerprint.slice(0, 8) }}</span>
+              </h2>
+
+              <div class="backdrop:text-sm">
+                <p v-if="incoming" class="text-violet-600">
+                  Shares locations for
+                  {{
+                    formatRelativeTimeDiff(new Date(), new Date(incoming.end))
+                  }}
+                </p>
+                <p v-if="!incoming" class="text-gray-500">
+                  Shares no locations with you
+                </p>
+                <p v-if="outgoing" class="text-violet-600">
+                  You share locations for
+                  {{
+                    formatRelativeTimeDiff(new Date(), new Date(outgoing.end))
+                  }}
+                </p>
+                <p v-if="!outgoing" class="text-gray-500">
+                  You are not sharing locations
+                </p>
+              </div>
+            </div>
+            <div>
+              <button
+                class="py-2 pl-2"
+                @click="cancelSession(contactFingerprint)"
+              >
+                <XMarkIcon class="h-6 w-6 text-purple-700" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -145,4 +145,31 @@ describe("useContactsStore", () => {
     ).toBeFalsy();
     expect(contactsStore.contacts.length).toBe(0);
   });
+
+  it("should get initials from a username", async () => {
+    const contactsStore = useContactsStore();
+
+    // Create a contact
+    const keyPair1 = await generateKeyPair();
+    const publicKey1 = await exportKey(keyPair1.publicKey);
+    await contactsStore.createContact({
+      username: "Le",
+      publicKey: publicKey1,
+    });
+    // Create a contact
+    const keyPair2 = await generateKeyPair();
+    const publicKey2 = await exportKey(keyPair2.publicKey);
+    await contactsStore.createContact({
+      username: "jon doe",
+      publicKey: publicKey2,
+    });
+
+    const [contact1, contact2] = contactsStore.contacts;
+
+    expect(contactsStore.getNameInitials("NOTFOUND")).toBe("??");
+
+    expect(contactsStore.getNameInitials(contact1.fingerprint)).toBe("LE");
+
+    expect(contactsStore.getNameInitials(contact2.fingerprint)).toBe("JD");
+  });
 });

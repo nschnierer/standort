@@ -11,18 +11,18 @@ const LOG_PREFIX = "[LCP Metrics]";
 
 const networkProfiles = {
   "3G": {
-    download: (750 * 1024) / 8, // 750 Kbps
+    download: (2 * 1024 * 1024) / 8, // 2 Mbps
     upload: (250 * 1024) / 8, // 250 Kbps
     latency: 100, // 100 ms
   },
-  "4G": {
-    download: (50 * 1024 * 1024) / 8, // 50 Mbps
-    upload: (10 * 1024 * 1024) / 8, // 10 Mbps
+  HSPA: {
+    download: (30 * 1024 * 1024) / 8, // 30 Mbps
+    upload: (8 * 1024 * 1024) / 8, // 8 Mbps
     latency: 20, // 20 ms
   },
-  "5G": {
-    download: (1000 * 1024 * 1024) / 8, // 1000 Mbps
-    upload: (1000 * 1024 * 1024) / 8, // 1000 Mbps
+  LTE: {
+    download: (300 * 1024 * 1024) / 8, // 300 Mbps
+    upload: (50 * 1024 * 1024) / 8, // 50 Mbps
     latency: 5, // 5 ms
   },
 };
