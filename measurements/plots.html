@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Line Charts with Plotly.js</title>
+    <title>Plots for Standort, Google Docs and LCP</title>
     <style type="text/css">
       body {
         font-family: "Open Sans", sans-serif;
       }
       .chart {
-        width: 700px;
-        height: 300px;
+        margin-top: 20px;
+        margin-bottom: 20px;
       }
     </style>
     <script
@@ -19,9 +19,11 @@
     ></script>
   </head>
   <body>
-    <div id="chart-standort"></div>
-    <div id="chart-docs"></div>
-    <div id="chart-lcp" class="chart"></div>
+    <div class="chart" id="chart-standort">NO DATA FOR STANDORT</div>
+    <div class="chart" id="chart-docs">NO DATA FOR GOOGLE DOCS</div>
+    <div class="chart" id="chart-lcp" style="width: 700px; height: 300px">
+      NO DATA FOR LCP
+    </div>
     <script>
       async function loadScript(src) {
         return new Promise((resolve, reject) => {
@@ -48,7 +50,7 @@
         },
       };
 
-      const renderMetricsChart = async (metrics, id) => {
+      const renderMetricsChart = async (metrics, title, id) => {
         const x = metrics.map((metric) => metric.count);
 
         var trace0 = {
@@ -73,6 +75,7 @@
         var data = [trace0, trace1, trace2];
 
         var layout = {
+          title,
           width: 1200,
           height: 500,
           xaxis: {
@@ -162,16 +165,27 @@
       (async () => {
         const loadStandort = async () => {
           await loadScript("./output/standort-import.js");
-          await renderMetricsChart(standortMetrics, "chart-standort");
+          document.getElementById("chart-standort").innerHTML = "";
+          await renderMetricsChart(
+            standortMetrics,
+            "Standort Metrics",
+            "chart-standort"
+          );
         };
 
         const loadDocs = async () => {
           await loadScript("./output/docs-import.js");
-          await renderMetricsChart(docsMetrics, "chart-docs");
+          document.getElementById("chart-docs").innerHTML = "";
+          await renderMetricsChart(
+            docsMetrics,
+            "Google Docs Metrics",
+            "chart-docs"
+          );
         };
 
         const loadLCP = async () => {
           await loadScript("./output/lcp-import.js");
+          document.getElementById("chart-lcp").innerHTML = "";
           createBarChart(calculateAverages(lcpMetrics), "chart-lcp");
         };
 

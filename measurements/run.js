@@ -54,7 +54,8 @@ const cleanAndCreateOutputDir = async (dir) => {
 };
 
 (async () => {
-  const outputPath = path.join(process.cwd(), "measurements", "output");
+  const outputPath = path.join(process.cwd(), "output");
+
   await cleanAndCreateOutputDir(outputPath);
 
   if (options["lcp-url"]) {

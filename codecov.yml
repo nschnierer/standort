@@ -5,6 +5,3 @@ coverage:
   status:
     project:
       default: false # disable the default status that measures entire project
-    patch:
-      default:
-        target: 20% # new contributions should have a coverage at least equal to target

@@ -274,14 +274,15 @@ const runStandortMetrics = async ({ url, clientsNumber = 8, outputPath }) => {
   // Start sharing location with clients step by step
   let count = 1;
   for (const client of clients) {
-    await mainClient.shareLocationWith(client.username);
-    await client.shareLocationWith(mainClient.username);
     await client.startMockingGeolocation();
+    await client.shareLocationWith(mainClient.username);
+    await timeout(3000);
+    await mainClient.shareLocationWith(client.username);
     console.log(
       LOG_PREFIX,
       `Start sharing location with ${client.username} in both directions (${count}/${clients.length})`
     );
-    await timeout(1000);
+    await timeout(3000);
     await mainClient.collectMetrics();
     await timeout(2000);
     await client.takeScreenshot(`standort-${count}-client`);
